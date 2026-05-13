@@ -4,18 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>紀錄 / tantingfang 的書庫</title>
-    
-    <link rel="apple-touch-icon" href="https://img.onl/xT2gD"> 
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .active-tab { border-bottom: 3px solid #6366f1; color: #6366f1; font-weight: bold; }
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 50; }
         .modal.show { display: flex; }
         #tanBtn { cursor: pointer; user-select: none; opacity: 0.2; }
-        .loading-spinner { border: 3px solid #f3f3f3; border-top: 3px solid #6366f1; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: none; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans">
@@ -25,8 +19,7 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold text-slate-900">📖 書庫紀錄</h1>
                 <span id="tanBtn" onclick="toggleSecretMode()" class="text-[10px] text-slate-400 font-mono italic">tan</span>
-                <button onclick="fetchAllData()" class="text-sm ml-2">🔄</button>
-                <div id="loader" class="loading-spinner"></div>
+                <button onclick="fetchAllData()" class="ml-2 text-sm text-indigo-600 font-bold border border-indigo-200 px-2 py-1 rounded">🔄 同步雲端</button>
             </div>
             <button onclick="showModal('categoryModal')" class="text-sm border border-slate-300 px-3 py-1 rounded-lg text-slate-700 bg-white">管理分類</button>
         </div>
@@ -42,42 +35,41 @@
             <h3 class="text-lg font-bold mb-4 text-center">分類設定</h3>
             <div id="categoryList" class="mb-4 space-y-2 max-h-60 overflow-y-auto"></div>
             <div class="bg-slate-100 p-3 rounded-xl space-y-2">
-                <input id="newCatName" type="text" placeholder="輸入新分類名稱" class="w-full p-2 rounded-lg text-sm border outline-none">
-                <label class="flex items-center text-xs text-slate-500 cursor-pointer">
-                    <input type="checkbox" id="isPrivate" class="mr-1"> 加密 (需點 tan 開啟)
-                </label>
+                <input id="newCatName" type="text" placeholder="新分類名稱" class="w-full p-2 rounded-lg text-sm border outline-none">
+                <label class="flex items-center text-xs text-slate-500"><input type="checkbox" id="isPrivate" class="mr-1"> 加密此分類</label>
                 <button onclick="addCategory()" class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-bold">新增分類</button>
             </div>
             <button onclick="closeModal('categoryModal')" class="w-full mt-4 text-slate-400 py-2">關閉</button>
-            <button onclick="resetAllData()" class="w-full mt-2 text-red-300 text-[10px]">強制清除快取</button>
+            <button onclick="resetAllData()" class="w-full mt-2 text-red-300 text-[10px]">強制清除手機快取並重新載入</button>
         </div>
     </div>
 
     <div id="bookModal" class="modal p-4">
         <div class="bg-white rounded-2xl w-full max-w-md p-6 overflow-y-auto max-h-[90vh]">
-            <h3 class="text-lg font-bold mb-4">新增書籍</h3>
+            <h3 class="text-lg font-bold mb-4">新增書籍紀錄</h3>
             <input id="bTitle" type="text" placeholder="書名" class="w-full border p-2 mb-2 rounded-lg">
-            <input id="bAuthor" type="text" placeholder="作者" class="w-full border p-2 mb-2 rounded-lg text-sm">
-            <textarea id="bDesc" placeholder="心得..." class="w-full border p-2 mb-2 rounded-lg h-24 text-sm"></textarea>
-            <input id="bLink" type="text" placeholder="連結" class="w-full border p-2 mb-2 rounded-lg text-sm">
+            <input id="author" type="text" placeholder="作者" class="w-full border p-2 mb-2 rounded-lg text-sm">
+            <textarea id="desc" placeholder="閱讀心得..." class="w-full border p-2 mb-2 rounded-lg h-24 text-sm"></textarea>
+            <input id="link" type="text" placeholder="相關網址" class="w-full border p-2 mb-2 rounded-lg text-sm">
             <div class="flex gap-2 mb-4">
                 <div class="w-1/2">
-                    <label class="text-[10px] text-slate-400 font-bold">Rating</label>
-                    <input id="bRating" type="number" step="0.5" min="0" max="10" value="5" class="w-full border p-2 rounded-lg">
+                    <label class="text-[10px] text-slate-400 font-bold uppercase">評分</label>
+                    <input id="rating" type="number" step="0.5" min="0" max="10" value="5" class="w-full border p-2 rounded-lg">
                 </div>
                 <div class="w-1/2">
-                    <label class="text-[10px] text-slate-400 font-bold">Category</label>
+                    <label class="text-[10px] text-slate-400 font-bold uppercase">存入分類</label>
                     <select id="bCat" class="w-full border p-2 rounded-lg text-sm bg-white"></select>
                 </div>
             </div>
             <div class="flex justify-end gap-2 pt-2">
                 <button onclick="closeModal('bookModal')" class="px-4 py-2 text-slate-400 text-sm">取消</button>
-                <button id="saveBtn" onclick="saveBook()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold">儲存並同步</button>
+                <button id="saveBtn" onclick="saveBook()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold">儲存並上傳</button>
             </div>
         </div>
     </div>
 
     <script>
+        // 我已經幫你把網址改好了！
         const scriptURL = "https://script.google.com/macros/s/AKfycbzlN3KI7nsl5ZAqxWJFahZu-LkQTC78g85_fa8hU3_I6QhOx2uL-tes_Bu2eEb6Kdko/exec"; 
         
         let categories = JSON.parse(localStorage.getItem('cats_v2')) || [{name:'未讀',private:false},{name:'已讀',private:false}];
@@ -85,9 +77,11 @@
         let isSecretMode = false;
         let activeTab = categories[0].name;
 
-        // 從雲端抓取資料
+        // 全設備同步：從 Google 試算表抓資料
         async function fetchAllData() {
-            document.getElementById('loader').style.display = 'block';
+            const btn = document.querySelector('button[onclick="fetchAllData()"]');
+            const originalText = btn.innerText;
+            btn.innerText = "讀取中...";
             try {
                 const response = await fetch(scriptURL);
                 const cloudData = await response.json();
@@ -96,8 +90,11 @@
                     localStorage.setItem('books_v2', JSON.stringify(books));
                     renderUI();
                 }
-            } catch (e) { console.log("目前試算表尚無資料或格式不符"); }
-            finally { document.getElementById('loader').style.display = 'none'; }
+            } catch (e) { 
+                console.error(e);
+                alert("同步失敗！請確認 Google Apps Script 部署為『所有人』且版本為最新。"); 
+            }
+            btn.innerText = originalText;
         }
 
         function renderUI() {
@@ -113,22 +110,22 @@
                 const realIdx = books.indexOf(b);
                 return `
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                    <div class="flex justify-between items-start">
+                    <div class="flex justify-between items-start mb-2">
                         <div class="flex-1">
                             <h4 class="font-bold text-slate-900">${b.title}</h4>
-                            <p class="text-[10px] text-slate-400">${b.author || '未知'}</p>
+                            <p class="text-[10px] text-slate-400 italic">${b.author || '未知作者'}</p>
                         </div>
                         <div class="flex flex-col gap-1 ml-2">
-                            <button onclick="moveBook(${realIdx}, -1)" class="text-[10px] bg-slate-100 p-1 rounded">⬆️</button>
-                            <button onclick="moveBook(${realIdx}, 1)" class="text-[10px] bg-slate-100 p-1 rounded">⬇️</button>
+                            <button onclick="moveBook(${realIdx}, -1)" class="text-[10px] bg-slate-50 p-1 rounded hover:bg-slate-200">⬆️</button>
+                            <button onclick="moveBook(${realIdx}, 1)" class="text-[10px] bg-slate-50 p-1 rounded hover:bg-slate-200">⬇️</button>
                         </div>
                     </div>
                     <p class="text-sm text-slate-600 line-clamp-2 mt-2">${b.desc || ''}</p>
-                    <div class="flex justify-between items-center mt-4">
-                        <span class="text-xs text-amber-500 font-bold">🌕 ${b.rating}</span>
+                    <div class="flex justify-between items-center mt-5">
+                        <span class="text-xs text-amber-500 font-bold bg-amber-50 px-2 py-1 rounded-full">🌕 ${b.rating} / 10</span>
                         <div class="flex gap-2">
-                            <button onclick="changeCategory(${realIdx})" class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md">📦 移動</button>
-                            <button onclick="deleteBook(${realIdx})" class="text-[10px] text-red-200">刪除</button>
+                            <button onclick="changeCategory(${realIdx})" class="text-[10px] bg-indigo-50 text-indigo-600 px-3 py-1 rounded-md font-bold hover:bg-indigo-100">📦 移動分類</button>
+                            <button onclick="deleteBook(${realIdx})" class="text-[10px] text-red-300">刪除</button>
                         </div>
                     </div>
                 </div>`;
@@ -136,55 +133,54 @@
 
             document.getElementById('bCat').innerHTML = categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
             document.getElementById('categoryList').innerHTML = categories.map((c, i) => `
-                <div class="flex justify-between p-2 bg-slate-50 rounded-lg text-sm mb-1">
-                    <span>${c.private ? '🔒' : ''} ${c.name}</span>
-                    <button onclick="deleteCat(${i})" class="text-red-400 px-2">刪除</button>
+                <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-100 mb-1">
+                    <span class="text-sm">${c.private ? '🔒' : ''} ${c.name}</span>
+                    <button onclick="deleteCat(${i})" class="text-red-400 text-xs font-bold px-2">刪除</button>
                 </div>`).join('');
         }
 
         async function saveBook() {
             const book = {
-                title: document.getElementById('bTitle').value,
-                author: document.getElementById('bAuthor').value,
-                desc: document.getElementById('bDesc').value,
-                link: document.getElementById('bLink').value,
-                rating: document.getElementById('bRating').value,
-                category: document.getElementById('bCat').value,
-                action: "add" // 告訴後端這是新增
+                title: document.getElementById('bTitle').value.trim(),
+                author: document.getElementById('author').value.trim(),
+                desc: document.getElementById('desc').value.trim(),
+                link: document.getElementById('link').value.trim(),
+                rating: document.getElementById('rating').value,
+                category: document.getElementById('bCat').value
             };
-            if (!book.title) return alert("請填寫書名");
-            document.getElementById('saveBtn').innerText = "上傳雲端...";
+            if (!book.title) return alert("書名是必填的喔！");
             
-            await fetch(scriptURL, { method: "POST", mode: "no-cors", body: JSON.stringify(book) });
-            books.push(book);
-            syncAndRefresh();
-            closeModal('bookModal');
-            document.getElementById('saveBtn').innerText = "儲存並同步";
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "同步上傳中...";
+            btn.disabled = true;
+
+            try {
+                await fetch(scriptURL, { method: "POST", mode: "no-cors", body: JSON.stringify(book) });
+                books.push(book);
+                syncAndRender();
+                closeModal('bookModal');
+                // 清空表單
+                ['bTitle','author','desc','link'].forEach(id => document.getElementById(id).value = "");
+            } catch (e) { alert("上傳失敗，請稍後再試！"); }
+            finally { btn.innerText = "確認儲存"; btn.disabled = false; }
         }
 
         function moveBook(index, direction) {
-            const newIndex = index + direction;
-            if (newIndex < 0 || newIndex >= books.length) return;
+            const newIdx = index + direction;
+            if (newIdx < 0 || newIdx >= books.length) return;
             const temp = books[index];
-            books[index] = books[newIndex];
-            books[newIndex] = temp;
-            syncAndRefresh();
+            books[index] = books[newIdx];
+            books[newIdx] = temp;
+            syncAndRender();
         }
 
         function changeCategory(index) {
-            const newCat = prompt("移動到哪？\n" + categories.map(c=>c.name).join('、'));
-            if (newCat && categories.some(c => c.name === newCat)) {
-                books[index].category = newCat;
-                syncAndRefresh();
-            }
-        }
-
-        function deleteBook(i) { if(confirm("確定刪除？")) { books.splice(i, 1); syncAndRefresh(); } }
-        
-        function syncAndRefresh() {
-            localStorage.setItem('books_v2', JSON.stringify(books));
-            renderUI();
-            // 同步整個陣列到雲端 (可選：若要 Excel 順序也跟著變，需調整後端，這裡先保存在手機)
+            const names = categories.map(c => c.name);
+            const target = prompt("想移動到哪個分類？\n選項：" + names.join('、'));
+            if (target && names.includes(target)) {
+                books[index].category = target;
+                syncAndRender();
+            } else if (target) { alert("找不到這個分類！"); }
         }
 
         function toggleSecretMode() {
@@ -195,24 +191,28 @@
         }
 
         function switchTab(name, isPriv) {
-            if (isPriv && prompt("密碼") !== "0416") return alert("密碼錯誤");
+            if (isPriv && prompt("請輸入密碼：") !== "0416") return alert("密碼錯誤！");
             activeTab = name; renderUI();
         }
 
+        function deleteBook(i) { if(confirm("確定要刪除這本書嗎？")) { books.splice(i, 1); syncAndRender(); } }
+        function syncAndRender() { localStorage.setItem('books_v2', JSON.stringify(books)); renderUI(); }
+        
         function addCategory() {
-            const name = document.getElementById('newCatName').value;
+            const name = document.getElementById('newCatName').value.trim();
             if(!name) return;
             categories.push({ name, private: document.getElementById('isPrivate').checked });
             localStorage.setItem('cats_v2', JSON.stringify(categories));
+            document.getElementById('newCatName').value = "";
             renderUI();
         }
-
-        function deleteCat(i) { categories.splice(i, 1); localStorage.setItem('cats_v2', JSON.stringify(categories)); renderUI(); }
-        function resetAllData() { localStorage.clear(); location.reload(); }
+        function deleteCat(i) { if(confirm("確定刪除分類？")) { categories.splice(i, 1); localStorage.setItem('cats_v2', JSON.stringify(categories)); renderUI(); } }
+        function resetAllData() { if(confirm("這將清除手機暫存並從雲端重新下載資料，確定嗎？")) { localStorage.clear(); location.reload(); } }
         function showModal(id) { document.getElementById(id).classList.add('show'); }
         function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
-        // 初始抓取
+        renderUI();
+        // 網頁開啟時自動同步一次雲端資料
         fetchAllData();
     </script>
 </body>
