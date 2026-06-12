@@ -4,15 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>紀錄 / tantingfang 的書庫</title>
+    <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 正常模式樣式 */
-        .active-tab { border-bottom: 3px solid #6366f1; color: #6366f1; font-weight: bold; }
-        /* 隱密模式樣式 (黑化玫瑰) */
+        .active-tab { border-bottom: 3px solid #215865; color: #215865; font-weight: bold; }
         .active-tab-secret { border-bottom: 3px solid #f43f5e; color: #f43f5e; font-weight: bold; }
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100; padding: 20px; }
         .modal.show { display: flex; }
-        #tanBtn { cursor: pointer; user-select: none; opacity: 0.1; transition: opacity 0.3s; }
+        #tanBtn { cursor: pointer; user-select: none; opacity: 0.15; transition: opacity 0.3s; }
         #tanBtn:hover { opacity: 0.8; }
         input, textarea, select { outline: none; border-radius: 8px; padding: 10px; border: 1px solid #e2e8f0; width: 100%; font-size: 14px; background: white; color: #1a202c; }
         .dark input, .dark textarea, .dark select { background: #2d3748; color: #e2e8f0; border-color: #4a5568; }
@@ -25,7 +24,7 @@
             <div class="flex items-center gap-2">
                 <h1 id="appTitle" class="text-xl font-bold text-slate-900">📖 書庫紀錄</h1>
                 <span id="tanBtn" onclick="triggerSecretMode()" class="text-[11px] text-slate-400 font-mono italic px-2 py-1">tan</span>
-                <button onclick="fetchAllData()" id="syncBtn" class="ml-2 text-sm text-indigo-600 font-bold border border-indigo-200 px-3 py-1.5 rounded-lg bg-white">🔄 同步雲端</button>
+                <button onclick="fetchAllData()" id="syncBtn" class="ml-2 text-sm text-emerald-700 font-bold border border-emerald-200 px-3 py-1.5 rounded-lg bg-emerald-50">🔄 同步雲端</button>
             </div>
             <div class="flex items-center gap-3">
                 <span id="modeBadge" class="hidden text-xs bg-rose-100 text-rose-600 font-bold px-3 py-1.5 rounded-full">🔒 隱密模式中</span>
@@ -37,7 +36,7 @@
     <div id="tabContainer" class="max-w-4xl mx-auto p-4 flex gap-6 border-b overflow-x-auto bg-white sticky top-[65px] z-40"></div>
     <main id="bookContainer" class="max-w-4xl mx-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-5 pb-28"></main>
 
-    <button onclick="openAddModal()" id="addBtn" class="fixed bottom-8 right-8 bg-indigo-600 text-white w-16 h-16 rounded-full shadow-2xl text-4xl z-40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95">+</button>
+    <button onclick="openAddModal()" id="addBtn" class="fixed bottom-8 right-8 bg-emerald-700 text-white w-16 h-16 rounded-full shadow-2xl text-4xl z-40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95">+</button>
 
     <div id="categoryModal" class="modal">
         <div class="bg-white rounded-2xl w-full max-w-md p-7 shadow-xl book-modal-content">
@@ -45,370 +44,91 @@
             <div id="categoryList" class="mb-5 space-y-2.5 max-h-60 overflow-y-auto"></div>
             <div class="bg-slate-100 p-4 rounded-xl space-y-3 book-modal-form">
                 <input id="newCatName" type="text" placeholder="新分類名稱">
-                <button onclick="addCategory()" class="w-full bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-bold idBtn">新增分類</button>
+                <button onclick="addCategory()" class="w-full bg-emerald-700 text-white py-2.5 rounded-lg text-sm font-bold idBtn">新增分類</button>
             </div>
             <button onclick="closeModal('categoryModal')" class="w-full mt-5 text-slate-500 py-2 text-sm">關閉彈窗</button>
-            <button onclick="resetAllData()" class="w-full mt-3 text-red-300 text-[10px]">強制清除手機快取(Reset)</button>
+            <button onclick="resetAllData()" class="w-full mt-3 text-red-400 text-[11px] font-bold">⚠️ 強制清除手機快取(Reset)</button>
         </div>
     </div>
 
     <div id="bookModal" class="modal">
         <div class="bg-white rounded-2xl w-full max-w-md p-7 overflow-y-auto max-h-[95vh] shadow-xl book-modal-content">
             <h3 id="bookModalTitle" class="text-xl font-bold mb-6 text-slate-900 modal-text">新增書籍紀錄</h3>
-            
             <input type="hidden" id="bookId">
-
             <div class="space-y-4 book-modal-form">
-                <div>
-                    <label class="text-[11px] text-slate-400 font-bold uppercase ml-1">書名 (必填)</label>
-                    <input id="bTitle" type="text" placeholder="輸入書名...">
-                </div>
-                <div>
-                    <label class="text-[11px] text-slate-400 font-bold uppercase ml-1">作者</label>
-                    <input id="author" type="text" placeholder="作者名稱...">
-                </div>
-                <div>
-                    <label class="text-[11px] text-slate-400 font-bold uppercase ml-1">簡介 (心得)</label>
-                    <textarea id="desc" placeholder="寫點閱讀心得或簡介..." class="h-28"></textarea>
-                </div>
-                <div>
-                    <label class="text-[11px] text-slate-400 font-bold uppercase ml-1">網址 (F欄)</label>
-                    <input id="link" type="text" placeholder="https://...">
-                </div>
-                
+                <div><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">書名 (必填)</label><input id="bTitle" type="text" placeholder="輸入書名..."></div>
+                <div><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">作者</label><input id="author" type="text" placeholder="作者名稱..."></div>
+                <div><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">簡介 (心得)</label><textarea id="desc" placeholder="寫點閱讀心得或簡介..." class="h-28"></textarea></div>
+                <div><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">網址</label><input id="link" type="text" placeholder="https://..."></div>
                 <div class="flex gap-4">
-                    <div class="w-1/2">
-                        <label class="text-[11px] text-slate-400 font-bold uppercase ml-1">評分 (D欄)</label>
-                        <input id="rating" type="number" step="0.5" min="0" max="10" value="5">
-                    </div>
-                    <div class="w-1/2">
-                        <label class="text-[11px] text-slate-400 font-bold uppercase ml-1">分類 (E欄)</label>
-                        <select id="bCat"></select>
-                    </div>
+                    <div class="w-1/2"><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">評分</label><input id="rating" type="number" step="0.5" min="0" max="10" value="5"></div>
+                    <div class="w-1/2"><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">分類</label><select id="bCat"></select></div>
                 </div>
             </div>
-
             <div class="flex justify-end gap-3 pt-6 mt-2 border-t border-slate-100 modal-footer">
                 <button onclick="closeModal('bookModal')" class="px-5 py-2.5 text-slate-500 text-sm">取消</button>
-                <button id="saveBtn" onclick="saveBook()" class="bg-indigo-600 text-white px-8 py-2.5 rounded-lg font-bold text-sm idBtn">儲存並同步雲端</button>
+                <button id="saveBtn" onclick="saveBook()" class="bg-emerald-700 text-white px-8 py-2.5 rounded-lg font-bold text-sm idBtn">儲存並同步雲端</button>
             </div>
         </div>
     </div>
 
     <script>
-        // 你的專屬雲端網址
         const scriptURL = "https://script.google.com/macros/s/AKfycbzlN3KI7nsl5ZAqxWJFahZu-LkQTC78g85_fa8hU3_I6QhOx2uL-tes_Bu2eEb6Kdko/exec"; 
-        const PRIVATE_PASS = "0416"; // 您的解鎖密碼
+        const PRIVATE_PASS = "0416";
 
-        // 核心資料庫 (分為公開與隱密)
-        let publicCats = JSON.parse(localStorage.getItem('pub_cats_v4')) || [{name:'未讀'},{name:'已讀'}];
-        let secretCats = JSON.parse(localStorage.getItem('sec_cats_v4')) || [{name:'秘密1'},{name:'秘密2'}];
-        let books = JSON.parse(localStorage.getItem('books_v4')) || [];
+        let publicCats = JSON.parse(localStorage.getItem('pub_cats_v6')) || [{name:'未讀'},{name:'已讀'}];
+        let secretCats = JSON.parse(localStorage.getItem('sec_cats_v6')) || [{name:'隱密區1'},{name:'隱密區2'}];
+        let books = JSON.parse(localStorage.getItem('books_v6')) || [];
         
-        let isSecretMode = false; // 目前是否為隱密模式
-        let activeTab = '未讀';
+        let isSecretMode = false;
+        let activeTab = '';
 
-        // --- 核心：觸發隱密空間 (含密碼鎖) ---
         function triggerSecretMode() {
             if (!isSecretMode) {
                 const password = prompt("🔒 此為隱密空間，請輸入安全密碼：");
                 if (password === PRIVATE_PASS) {
                     isSecretMode = true;
-                    // 進去後預設切換到秘密分類的第一個，或是'未讀'
-                    activeTab = secretCats[0] ? secretCats[0].name : '未讀';
+                    autoExtractCategories(); // 切換時自動從書籍提取最新分類
+                    activeTab = secretCats[0] ? secretCats[0].name : '';
                     enterSecretStyle();
                 } else if (password !== null) {
                     alert("❌ 密碼錯誤！存取被拒。");
                 }
             } else {
                 isSecretMode = false;
-                activeTab = publicCats[0] ? publicCats[0].name : '未讀';
+                autoExtractCategories(); // 切換時自動從書籍提取最新分類
+                activeTab = publicCats[0] ? publicCats[0].name : '';
                 exitSecretStyle();
             }
             renderUI();
         }
 
-        // 變更為黑化私人主題
+        // 【核心大腦升級】：直接掃描書籍資料中的分類，強行覆寫本機分類
+        function autoExtractCategories() {
+            const currentModeBooks = books.filter(b => b.isSecret === isSecretMode);
+            if (currentModeBooks.length > 0) {
+                // 找出所有在書籍裡出現過的分類名稱
+                const uniqueCats = [...new Set(currentModeBooks.map(b => b.category).filter(Boolean))];
+                const catObjects = uniqueCats.map(name => ({ name }));
+                
+                if (isSecretMode) {
+                    secretCats = catObjects;
+                    localStorage.setItem('sec_cats_v6', JSON.stringify(secretCats));
+                } else {
+                    publicCats = catObjects;
+                    localStorage.setItem('pub_cats_v6', JSON.stringify(publicCats));
+                }
+            }
+            
+            // 確保 activeTab 不為空
+            const currentCats = isSecretMode ? secretCats : publicCats;
+            if (currentCats.length > 0 && (!activeTab || !currentCats.some(c => c.name === activeTab))) {
+                activeTab = currentCats[0].name;
+            }
+        }
+
         function enterSecretStyle() {
-            document.documentElement.classList.add('dark'); // 用於表單輸入框的樣式
+            document.documentElement.classList.add('dark');
             document.getElementById('bodyBg').className = "bg-zinc-950 min-h-screen font-sans transition-colors duration-300 text-zinc-100";
             document.getElementById('navBg').className = "bg-zinc-900 shadow-xl sticky top-0 z-50 border-b border-zinc-800";
-            document.getElementById('tabContainer').className = "max-w-4xl mx-auto p-4 flex gap-6 border-b border-zinc-800 overflow-x-auto bg-zinc-900 sticky top-[65px] z-40 text-zinc-400";
-            document.getElementById('appTitle').innerText = "🔒 隱密私人書庫";
-            document.getElementById('appTitle').className = "text-xl font-bold text-rose-400";
-            document.getElementById('syncBtn').className = "ml-2 text-xs text-rose-400 font-bold border border-rose-900 px-3 py-1 rounded-lg bg-zinc-900";
-            
-            document.getElementById('modeBadge').classList.remove('hidden');
-            document.getElementById('addBtn').className = "fixed bottom-8 right-8 bg-rose-600 text-white w-16 h-16 rounded-full shadow-2xl text-4xl z-40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95";
-            document.getElementById('catModalMode').innerText = "🔒 隱密模式";
-
-            // 改彈窗樣式
-            const modalContents = document.querySelectorAll('.book-modal-content');
-            modalContents.forEach(m => m.classList.replace('bg-white', 'bg-zinc-900'));
-            const modalTexts = document.querySelectorAll('.modal-text');
-            modalTexts.forEach(t => t.classList.replace('text-slate-900', 'text-zinc-100'));
-            const modalForms = document.querySelectorAll('.book-modal-form');
-            modalForms.forEach(f => f.classList.replace('bg-slate-100', 'bg-zinc-800'));
-            const modalFooters = document.querySelectorAll('.modal-footer');
-            modalFooters.forEach(f => f.classList.replace('border-slate-100', 'border-zinc-800'));
-        }
-
-        // 恢復一般主題
-        function exitSecretStyle() {
-            document.documentElement.classList.remove('dark');
-            document.getElementById('bodyBg').className = "bg-slate-50 min-h-screen font-sans transition-colors duration-300 text-slate-900";
-            document.getElementById('navBg').className = "bg-white shadow-sm sticky top-0 z-50";
-            document.getElementById('tabContainer').className = "max-w-4xl mx-auto p-4 flex gap-6 border-b overflow-x-auto bg-white sticky top-[65px] z-40 text-slate-600";
-            document.getElementById('appTitle').innerText = "📖 書庫紀錄";
-            document.getElementById('appTitle').className = "text-xl font-bold text-slate-900";
-            document.getElementById('syncBtn').className = "ml-2 text-sm text-indigo-600 font-bold border border-indigo-200 px-3 py-1.5 rounded-lg bg-white";
-            
-            document.getElementById('modeBadge').classList.add('hidden');
-            document.getElementById('addBtn').className = "fixed bottom-8 right-8 bg-indigo-600 text-white w-16 h-16 rounded-full shadow-2xl text-4xl z-40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95";
-            document.getElementById('catModalMode').innerText = "正常模式";
-
-            // 恢復彈窗樣式
-            const modalContents = document.querySelectorAll('.book-modal-content');
-            modalContents.forEach(m => m.classList.replace('bg-zinc-900', 'bg-white'));
-            const modalTexts = document.querySelectorAll('.modal-text');
-            modalTexts.forEach(t => t.classList.replace('text-zinc-100', 'text-slate-900'));
-            const modalForms = document.querySelectorAll('.book-modal-form');
-            modalForms.forEach(f => f.classList.replace('bg-zinc-800', 'bg-slate-100'));
-            const modalFooters = document.querySelectorAll('.modal-footer');
-            modalFooters.forEach(f => f.classList.replace('border-zinc-800', 'border-slate-100'));
-        }
-
-        function renderUI() {
-            const currentCats = isSecretMode ? secretCats : publicCats;
-            const tabBtnStyle = isSecretMode ? 'active-tab-secret' : 'active-tab';
-
-            // 1. 渲染頁籤
-            document.getElementById('tabContainer').innerHTML = currentCats.map(cat => `
-                <button onclick="switchTab('${cat.name}')" class="pb-2.5 whitespace-nowrap text-sm ${activeTab === cat.name ? tabBtnStyle : 'text-slate-400 hover:text-slate-600'}">
-                    ${isSecretMode ? '🌹 ' : ''}${cat.name}
-                </button>
-            `).join('');
-
-            // 2. 完美隔離過濾：依據當前模式和分類過濾書籍
-            const filteredBooks = books.filter(b => (b.isSecret === isSecretMode) && b.category === activeTab);
-            
-            const cardBg = isSecretMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-100';
-            const textBody = isSecretMode ? 'text-zinc-300' : 'text-slate-600';
-            const textMuted = isSecretMode ? 'text-zinc-500' : 'text-slate-400';
-            const btnBg = isSecretMode ? 'bg-zinc-800' : 'bg-slate-50';
-
-            // 繪製書籍卡片 (新增「編輯」按鈕)
-            document.getElementById('bookContainer').innerHTML = filteredBooks.map((b) => {
-                const realIdx = books.indexOf(b);
-                return `
-                <div class="${cardBg} p-6 rounded-2xl shadow-lg border relative transition-all hover:shadow-xl">
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="flex-1 pr-4">
-                            <h4 class="font-bold text-lg">${b.title}</h4>
-                            <p class="text-xs ${textMuted} italic mt-1">${b.author || '未知作者'}</p>
-                        </div>
-                        <span class="text-sm text-amber-400 font-bold flex items-center gap-1.5 whitespace-nowrap">🌕 ${parseFloat(b.rating).toFixed(1)}</span>
-                    </div>
-                    <p class="text-sm ${textBody} line-clamp-3 mt-3 leading-relaxed">${b.desc || '無心得內容。'}</p>
-                    ${b.link ? `<a href="${b.link}" target="_blank" class="text-xs text-sky-400 block mt-4 truncate hover:underline">🔗 開啟網址</a>` : ''}
-                    <div class="flex justify-between items-center mt-5 pt-4 border-t ${isSecretMode ? 'border-zinc-800' : 'border-slate-50'}">
-                        <div class="flex gap-2">
-                            <button onclick="openEditModal(${realIdx})" class="text-[11px] ${btnBg} px-3 py-1.5 rounded-md font-bold hover:opacity-80">🛠️ 編輯</button>
-                        </div>
-                        <button onclick="deleteBookCloud(${realIdx})" class="text-[11px] text-red-400 hover:text-red-500 font-medium px-2 py-1">永久刪除</button>
-                    </div>
-                </div>`;
-            }).join('');
-
-            // 更新表單按鈕和選單
-            const idBtns = document.querySelectorAll('.idBtn');
-            idBtns.forEach(btn => {
-                if(isSecretMode) { btn.classList.replace('bg-indigo-600','bg-rose-600'); }
-                else { btn.classList.replace('bg-rose-600','bg-indigo-600'); }
-            });
-
-            document.getElementById('bCat').innerHTML = currentCats.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-            document.getElementById('categoryList').innerHTML = currentCats.map((c, i) => `
-                <div class="flex justify-between items-center ${isSecretMode ? 'bg-zinc-800 border-zinc-700' : 'bg-slate-50 border-slate-100'} p-2.5 rounded-lg border mb-1.5">
-                    <span class="text-sm">${c.name}</span>
-                    <button onclick="deleteCat(${i})" class="text-red-400 text-xs font-bold px-2 hover:text-red-500">刪除</button>
-                </div>`).join('');
-        }
-
-        function switchTab(name) { activeTab = name; renderUI(); }
-
-        // --- 功能：開啟「新增」模式的彈窗 ---
-        function openAddModal() {
-            document.getElementById('bookId').value = ""; // 清空 ID 標記為新增
-            document.getElementById('bookModalTitle').innerText = isSecretMode ? "新增安全加密書籍" : "新增書籍紀錄";
-            document.getElementById('saveBtn').innerText = "儲存並新增至雲端";
-            // 清空表單
-            ['bTitle','author','desc','link'].forEach(id => document.getElementById(id).value = "");
-            document.getElementById('rating').value = "5";
-            renderUI(); // 確保分類下拉選單正確
-            showModal('bookModal');
-        }
-
-        // --- 新增功能：開啟「編輯」模式的彈窗 ---
-        function openEditModal(booksIndex) {
-            const bookData = books[booksIndex];
-            
-            document.getElementById('bookId').value = bookData.id; // 存入 ID 標記為編輯
-            document.getElementById('bookModalTitle').innerText = "修改《" + bookData.title + "》";
-            document.getElementById('saveBtn').innerText = "確認修改並更新雲端";
-
-            // 填入舊資料
-            document.getElementById('bTitle').value = bookData.title;
-            document.getElementById('author').value = bookData.author || "";
-            document.getElementById('desc').value = bookData.desc || "";
-            document.getElementById('link').value = bookData.link || "";
-            document.getElementById('rating').value = bookData.rating || "5";
-            
-            // 處理分類下拉選單
-            renderUI(); // 確保下拉選單已生成
-            document.getElementById('bCat').value = bookData.category; 
-
-            showModal('bookModal');
-        }
-
-        // --- 核心更新：儲存書籍 (自動判斷新增或編輯) ---
-        async function saveBook() {
-            const bookId = document.getElementById('bookId').value;
-            const isEditing = bookId !== ""; // 有 ID 就是編輯模式
-
-            const book = {
-                action: isEditing ? "edit" : "add", // 告訴雲端要編輯還是新增
-                id: bookId, // 編輯時才需要發送 ID
-                title: document.getElementById('bTitle').value.trim(),
-                author: document.getElementById('author').value.trim(),
-                desc: document.getElementById('desc').value.trim(),
-                link: document.getElementById('link').value.trim(),
-                rating: document.getElementById('rating').value || "5",
-                category: document.getElementById('bCat').value,
-                isSecret: isSecretMode // 依舊模式決定去工作表1還是2
-            };
-
-            if (!book.title) return alert("書名是必填的喔！");
-            
-            const btn = document.getElementById('saveBtn');
-            const oldText = btn.innerText;
-            btn.innerText = "🚀 正在同步雲端更新中...";
-            btn.disabled = true;
-
-            try {
-                // 發送到 Google 試算表
-                await fetch(scriptURL, { method: "POST", mode: "no-cors", body: JSON.stringify(book) });
-                
-                // 本機同步更新，避免重新抓取
-                if (isEditing) {
-                    const idx = books.findIndex(b => b.id === bookId);
-                    if (idx !== -1) books[idx] = {...books[idx], ...book}; // 更新本機陣列
-                } else {
-                    // 新增的書籍無法在本機取得 ID，只能先加入臨時 ID，下一次同步時會被修正
-                    books.push({...book, id: "temp-" + Date.now()}); 
-                }
-
-                localStorage.setItem('books_v4', JSON.stringify(books));
-                closeModal('bookModal');
-                
-                // 成功後強制抓取最新雲端資料一次，以確保新增書籍獲得正確的 ID
-                await fetchAllData(false); // false 表示不彈出失敗警告
-                renderUI();
-
-            } catch (e) { 
-                alert("雲端同步失敗，請確認網路或 GAS 部署！"); 
-            } finally { 
-                btn.innerText = oldText; 
-                btn.disabled = false; 
-            }
-        }
-
-        // --- 核心更新：連同雲端一起永久刪除 ---
-        async function deleteBookCloud(i) {
-            const bookData = books[i];
-            if(!bookData.id || bookData.id.startsWith("temp-")) return alert("這本書尚未完成雲端同步，無法刪除。");
-
-            if(!confirm("⚠️ 注意：這將連同 Google 試算表（Excel）裡的該列資料一起『永久刪除』，確定嗎？")) return;
-            
-            // 隱藏卡片
-            books.splice(i, 1);
-            localStorage.setItem('books_v4', JSON.stringify(books));
-            renderUI();
-
-            try {
-                // 發送刪除請求給雲端
-                await fetch(scriptURL, { method: "POST", mode: "no-cors", body: JSON.stringify({
-                    action: "delete",
-                    id: bookData.id,
-                    isSecret: bookData.isSecret
-                }) });
-            } catch (e) { alert("雲端刪除失敗，但本機紀錄已清除。下次同步時可能會重新跑出來。"); }
-        }
-
-        // 強制從雲端抓回所有資料 (支援 pass 參數以獲取秘密資料)
-        async function fetchAllData(showError = true) {
-            const btn = document.getElementById('syncBtn');
-            if(btn) btn.innerText = "⚡ 同步中...";
-            
-            // 核心：如果是秘密模式，抓取請求要帶入密碼，大腦才會給私密資料
-            const finalURL = isSecretMode ? (scriptURL + "?pass=" + PRIVATE_PASS) : scriptURL;
-
-            try {
-                const response = await fetch(finalURL);
-                const cloudData = await response.json();
-                if (cloudData && Array.isArray(cloudData)) {
-                    // 完美合併：依據 ID 合併公開與私密資料，避免重複
-                    books = cloudData; 
-                    localStorage.setItem('books_v4', JSON.stringify(books));
-                    renderUI();
-                }
-            } catch (e) { 
-                if(showError) alert("同步失敗！請確認 GAS 已部署為「所有人」。"); 
-            } finally {
-                if(btn) btn.innerText = "🔄 同步雲端";
-            }
-        }
-
-        function addCategory() {
-            const name = document.getElementById('newCatName').value.trim();
-            if(!name) return;
-            if(isSecretMode) {
-                secretCats.push({name});
-                localStorage.setItem('sec_cats_v4', JSON.stringify(secretCats));
-            } else {
-                publicCats.push({name});
-                localStorage.setItem('pub_cats_v4', JSON.stringify(publicCats));
-            }
-            document.getElementById('newCatName').value = "";
-            renderUI();
-        }
-
-        function deleteCat(i) {
-            if(!confirm("確定刪除此分類？")) return;
-            if(isSecretMode) {
-                secretCats.splice(i, 1);
-                localStorage.setItem('sec_cats_v4', JSON.stringify(secretCats));
-            } else {
-                publicCats.splice(i, 1);
-                localStorage.setItem('pub_cats_v4', JSON.stringify(publicCats));
-            }
-            renderUI();
-        }
-
-        function resetAllData() {
-            if(confirm("這將清除手機所有暫存(Reset)並重新下載雲端資料，確定嗎？")) {
-                localStorage.clear();
-                location.reload();
-            }
-        }
-
-        function showModal(id) { document.getElementById(id).classList.add('show'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-
-        // 初始化
-        renderUI();
-        // 第一次載入只顯示公開資料，避免一開啟就抓秘密資料
-        fetchAllData(false); 
-    </script>
-</body>
-</html>
+            document.getElementById('tab
