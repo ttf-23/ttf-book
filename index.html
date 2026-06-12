@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>紀錄 / tantingfang 的書庫</title>
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json?v=100">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .active-tab { border-bottom: 3px solid #215865; color: #215865; font-weight: bold; }
@@ -76,51 +76,53 @@
         const scriptURL = "https://script.google.com/macros/s/AKfycbzlN3KI7nsl5ZAqxWJFahZu-LkQTC78g85_fa8hU3_I6QhOx2uL-tes_Bu2eEb6Kdko/exec"; 
         const PRIVATE_PASS = "0416";
 
-        let publicCats = JSON.parse(localStorage.getItem('pub_cats_v6')) || [{name:'未讀'},{name:'已讀'}];
-        let secretCats = JSON.parse(localStorage.getItem('sec_cats_v6')) || [{name:'隱密區1'},{name:'隱密區2'}];
-        let books = JSON.parse(localStorage.getItem('books_v6')) || [];
+        // 更新儲存庫鍵名，完全切斷舊的干擾
+        let publicCats = JSON.parse(localStorage.getItem('pub_cats_v100')) || [{name:'未讀'},{name:'已讀'}];
+        let secretCats = JSON.parse(localStorage.getItem('sec_cats_v100')) || [{name:'隱密區1'},{name:'隱密區2'}];
+        let books = [];
         
         let isSecretMode = false;
-        let activeTab = '';
+        let activeTab = isSecretMode ? (secretCats[0] ? secretCats[0].name : '') : (publicCats[0] ? publicCats[0].name : '');
 
         function triggerSecretMode() {
             if (!isSecretMode) {
                 const password = prompt("🔒 此為隱密空間，請輸入安全密碼：");
                 if (password === PRIVATE_PASS) {
                     isSecretMode = true;
-                    autoExtractCategories(); 
-                    activeTab = secretCats[0] ? secretCats[0].name : '';
                     enterSecretStyle();
+                    autoMergeCategories();
                 } else if (password !== null) {
                     alert("❌ 密碼錯誤！存取被拒。");
                 }
             } else {
                 isSecretMode = false;
-                autoExtractCategories(); 
-                activeTab = publicCats[0] ? publicCats[0].name : '未讀';
                 exitSecretStyle();
+                autoMergeCategories();
             }
             renderUI();
         }
 
-        function autoExtractCategories() {
+        // 核心邏輯：把雲端抓回來的「書本分類」跟手機上現有的「空分類」完美合併，不抹除空分類！
+        function autoMergeCategories() {
             const currentModeBooks = books.filter(b => b.isSecret === isSecretMode);
-            if (currentModeBooks.length > 0) {
-                const uniqueCats = [...new Set(currentModeBooks.map(b => b.category).filter(Boolean))];
-                const catObjects = uniqueCats.map(name => ({ name }));
-                
-                if (isSecretMode) {
-                    secretCats = catObjects;
-                    localStorage.setItem('sec_cats_v6', JSON.stringify(secretCats));
-                } else {
-                    publicCats = catObjects;
-                    localStorage.setItem('pub_cats_v6', JSON.stringify(publicCats));
-                }
-            }
+            const bookCats = [...new Set(currentModeBooks.map(b => b.category).filter(Boolean))];
             
-            const currentCats = isSecretMode ? secretCats : publicCats;
-            if (currentCats.length > 0 && (!activeTab || !currentCats.some(c => c.name === activeTab))) {
-                activeTab = currentCats[0].name;
+            if (isSecretMode) {
+                bookCats.forEach(name => {
+                    if(!secretCats.some(c => c.name === name)) secretCats.push({name});
+                });
+                localStorage.setItem('sec_cats_v100', JSON.stringify(secretCats));
+                if (!activeTab || !secretCats.some(c => c.name === activeTab)) {
+                    activeTab = secretCats[0] ? secretCats[0].name : '';
+                }
+            } else {
+                bookCats.forEach(name => {
+                    if(!publicCats.some(c => c.name === name)) publicCats.push({name});
+                });
+                localStorage.setItem('pub_cats_v100', JSON.stringify(publicCats));
+                if (!activeTab || !publicCats.some(c => c.name === activeTab)) {
+                    activeTab = publicCats[0] ? publicCats[0].name : '';
+                }
             }
         }
 
@@ -172,6 +174,10 @@
             const currentCats = isSecretMode ? secretCats : publicCats;
             const tabBtnStyle = isSecretMode ? 'active-tab-secret' : 'active-tab';
 
+            if (currentCats.length > 0 && (!activeTab || !currentCats.some(c => c.name === activeTab))) {
+                activeTab = currentCats[0].name;
+            }
+
             document.getElementById('tabContainer').innerHTML = currentCats.map(cat => `
                 <button onclick="switchTab('${cat.name}')" class="pb-2.5 whitespace-nowrap text-sm ${activeTab === cat.name ? tabBtnStyle : 'text-slate-400 hover:text-slate-600'}">
                     ${isSecretMode ? '🌹 ' : ''}${cat.name}
@@ -186,7 +192,6 @@
             const btnBg = isSecretMode ? 'bg-zinc-800' : 'bg-slate-50';
 
             document.getElementById('bookContainer').innerHTML = filteredBooks.map((b) => {
-                const realIdx = books.indexOf(b);
                 return `
                 <div class="${cardBg} p-6 rounded-2xl shadow-lg border relative transition-all hover:shadow-xl">
                     <div class="flex justify-between items-start mb-3">
@@ -199,8 +204,8 @@
                     <p class="text-sm ${textBody} line-clamp-3 mt-3 leading-relaxed">${b.desc || '無心得內容。'}</p>
                     ${b.link ? `<a href="${b.link}" target="_blank" class="text-xs text-sky-400 block mt-4 truncate hover:underline">🔗 開啟網址</a>` : ''}
                     <div class="flex justify-between items-center mt-5 pt-4 border-t ${isSecretMode ? 'border-zinc-800' : 'border-slate-50'}">
-                        <button onclick="openEditModal(${realIdx})" class="text-[11px] ${btnBg} px-3 py-1.5 rounded-md font-bold hover:opacity-80">🛠️ 編輯</button>
-                        <button onclick="deleteBookCloud(${realIdx})" class="text-[11px] text-red-400 hover:text-red-500 font-medium px-2 py-1">永久刪除</button>
+                        <button onclick="openEditModal('${b.id}')" class="text-[11px] ${btnBg} px-3 py-1.5 rounded-md font-bold hover:opacity-80">🛠️ 編輯</button>
+                        <button onclick="deleteBookCloud('${b.id}')" class="text-[11px] text-red-400 hover:text-red-500 font-medium px-2 py-1">永久刪除</button>
                     </div>
                 </div>`;
             }).join('');
@@ -231,8 +236,9 @@
             showModal('bookModal');
         }
 
-        function openEditModal(booksIndex) {
-            const bookData = books[booksIndex];
+        function openEditModal(id) {
+            const bookData = books.find(b => b.id === id);
+            if(!bookData) return;
             document.getElementById('bookId').value = bookData.id;
             document.getElementById('bookModalTitle').innerText = "修改《" + bookData.title + "》";
             document.getElementById('saveBtn').innerText = "確認修改並更新雲端";
@@ -271,13 +277,6 @@
 
             try {
                 await fetch(scriptURL, { method: "POST", mode: "no-cors", body: JSON.stringify(book) });
-                if (isEditing) {
-                    const idx = books.findIndex(b => b.id === bookId);
-                    if (idx !== -1) books[idx] = {...books[idx], ...book};
-                } else {
-                    books.push({...book, id: "temp-" + Date.now()}); 
-                }
-                localStorage.setItem('books_v6', JSON.stringify(books));
                 closeModal('bookModal');
                 await fetchAllData(false);
             } catch (e) { 
@@ -288,21 +287,14 @@
             }
         }
 
-        async function deleteBookCloud(i) {
-            const bookData = books[i];
-            if(!bookData.id || bookData.id.startsWith("temp-")) return alert("同步未完成，請稍後。");
+        async function deleteBookCloud(id) {
             if(!confirm("⚠️ 確定連同試算表永久刪除？")) return;
-            
-            books.splice(i, 1);
-            localStorage.setItem('books_v6', JSON.stringify(books));
-            autoExtractCategories();
-            renderUI();
-
             try {
                 await fetch(scriptURL, { method: "POST", mode: "no-cors", body: JSON.stringify({
-                    action: "delete", id: bookData.id, isSecret: bookData.isSecret
+                    action: "delete", id: id, isSecret: isSecretMode
                 }) });
-            } catch (e) { alert("雲端刪除失敗，本機已先移除。"); }
+                await fetchAllData(false);
+            } catch (e) { alert("雲端刪除失敗！"); }
         }
 
         async function fetchAllData(showError = true) {
@@ -315,12 +307,11 @@
                 const cloudData = await response.json();
                 if (cloudData && Array.isArray(cloudData)) {
                     books = cloudData; 
-                    localStorage.setItem('books_v6', JSON.stringify(books));
-                    autoExtractCategories(); 
+                    autoMergeCategories(); 
                     renderUI();
                 }
             } catch (e) { 
-                if(showError) alert("同步失敗！請確認試算表 F1 已改為「網址」"); 
+                if(showError) alert("同步失敗！"); 
             } finally {
                 if(btn) btn.innerText = "🔄 同步雲端";
             }
@@ -329,15 +320,15 @@
         function addCategory() {
             const name = document.getElementById('newCatName').value.trim();
             if(!name) return;
-            if(isSecretMode) {
-                if(!secretCats.some(c=>c.name===name)) secretCats.push({name});
-                localStorage.setItem('sec_cats_v6', JSON.stringify(secretCats));
-            } else {
-                if(!publicCats.some(c=>c.name===name)) publicCats.push({name});
-                localStorage.setItem('pub_cats_v6', JSON.stringify(publicCats));
+            const currentCats = isSecretMode ? secretCats : publicCats;
+            if(!currentCats.some(c=>c.name===name)) {
+                currentCats.push({name});
             }
+            if(isSecretMode) localStorage.setItem('sec_cats_v100', JSON.stringify(secretCats));
+            else localStorage.setItem('pub_cats_v100', JSON.stringify(publicCats));
+            
             document.getElementById('newCatName').value = "";
-            if(!activeTab && name) activeTab = name;
+            activeTab = name;
             renderUI();
         }
 
@@ -345,11 +336,11 @@
             if(!confirm("確定刪除此分類？")) return;
             if(isSecretMode) {
                 secretCats = secretCats.filter(c => c.name !== name);
-                localStorage.setItem('sec_cats_v6', JSON.stringify(secretCats));
+                localStorage.setItem('sec_cats_v100', JSON.stringify(secretCats));
                 activeTab = secretCats[0] ? secretCats[0].name : '';
             } else {
                 publicCats = publicCats.filter(c => c.name !== name);
-                localStorage.setItem('pub_cats_v6', JSON.stringify(publicCats));
+                localStorage.setItem('pub_cats_v100', JSON.stringify(publicCats));
                 activeTab = publicCats[0] ? publicCats[0].name : '';
             }
             renderUI();
@@ -365,11 +356,8 @@
         function showModal(id) { document.getElementById(id).classList.add('show'); }
         function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
-        if(books.length > 0) {
-            autoExtractCategories();
-        } else {
-            activeTab = isSecretMode ? '隱密區1' : '未讀';
-        }
+        // 初始載入
+        autoMergeCategories();
         renderUI();
         fetchAllData(false); 
     </script>
