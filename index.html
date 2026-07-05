@@ -103,7 +103,7 @@
     </div>
 
     <script>
-        // ⚠️ 請記得把下方的網址換成你步驟二最新產生的部署網址
+        // ⚠️ 請確保這裡填入的是你最新的 Google Apps Script 部署網址
         const scriptURL = "https://script.google.com/macros/s/AKfycbzlN3KI7nsl5ZAqxWJFahZu-LkQTC78g85_fa8hU3_I6QhOx2uL-tes_Bu2eEb6Kdko/exec"; 
         const PRIVATE_PASS = "0416";
 
@@ -131,16 +131,26 @@
                 if (password === PRIVATE_PASS) {
                     isSecretMode = true;
                     activeTab = ""; 
+                    
+                    // ✨ 關鍵修正：換模式時立刻把手機畫面上的舊書清空，才不會留著上一個模式的書
+                    books = []; 
+                    document.getElementById('bookContainer').innerHTML = `<div class="text-center py-12 text-zinc-500 text-xs">🔒 正在解密並載入私人書庫...</div>`;
+                    
                     enterSecretStyle();
-                    fetchAllData(false); // 進入隱密模式：強制改抓工作表2
+                    fetchAllData(false); // 立即去抓工作表2
                 } else if (password !== null) {
                     alert("❌ 密碼錯誤！存取被拒。");
                 }
             } else {
                 isSecretMode = false;
                 activeTab = publicCats[0] ? publicCats[0].name : '';
+                
+                // ✨ 關鍵修正：換模式時立刻把手機畫面上的舊書清空
+                books = []; 
+                document.getElementById('bookContainer').innerHTML = `<div class="text-center py-12 text-slate-400 text-xs">📖 正在載入一般書庫...</div>`;
+                
                 exitSecretStyle();
-                fetchAllData(false); // 退出隱密模式：強制改抓工作表1
+                fetchAllData(false); // 立即去抓工作表1
             }
         }
 
@@ -245,7 +255,7 @@
                 </div>`;
             }).join('');
 
-            if(filteredBooks.length === 0) {
+            if(filteredBooks.length === 0 && books.length > 0) {
                 document.getElementById('bookContainer').innerHTML = `<div class="text-center py-12 ${textMuted} text-xs">此分類目前是空的。點右下角 + 新增書本</div>`;
             }
 
@@ -377,7 +387,7 @@
                 link: document.getElementById('link').value.trim(),
                 rating: document.getElementById('rating').value || "5",
                 category: document.getElementById('bCat').value,
-                sheetName: isSecretMode ? "工作表2" : "工作表1" // 強制指定儲存的工作表
+                sheetName: isSecretMode ? "工作表2" : "工作表1" 
             };
 
             if (!book.title) return alert("書名是必填的喔！");
@@ -405,7 +415,7 @@
                 await fetch(scriptURL, { method: "POST", mode: "no-cors", body: JSON.stringify({
                     action: "delete", 
                     id: id, 
-                    sheetName: isSecretMode ? "工作表2" : "工作表1" // 強制指定刪除的工作表
+                    sheetName: isSecretMode ? "工作表2" : "工作表1" 
                 }) });
                 await fetchAllData(false);
             } catch (e) { alert("雲端刪除失敗！"); }
@@ -415,7 +425,6 @@
             const btn = document.getElementById('syncBtn');
             if(btn) btn.innerText = "⚡ 同步中...";
             
-            // 讀取徹底分流：隱密傳工作表2，正常傳工作表1
             const finalURL = isSecretMode 
                 ? (scriptURL + "?pass=" + PRIVATE_PASS + "&sheet=工作表2") 
                 : (scriptURL + "?sheet=工作表1");
@@ -430,6 +439,8 @@
                 }
             } catch (e) { 
                 if(showError) alert("同步失敗！"); 
+                // 發生錯誤時清空畫面文字
+                document.getElementById('bookContainer').innerHTML = `<div class="text-center py-12 text-red-400 text-xs">同步失敗，請點選上方同步鈕重試。</div>`;
             } finally {
                 if(btn) btn.innerText = "🔄 同步";
             }
