@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>紀錄 / tantingfang 的書庫</title>
-    <link rel="manifest" href="manifest.json?v=101">
+    <link rel="manifest" href="manifest.json?v=102">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .active-tab { border-bottom: 3px solid #215865; color: #215865; font-weight: bold; }
@@ -36,7 +36,6 @@
 
     <div id="tabContainer" class="max-w-4xl mx-auto p-4 flex gap-6 border-b overflow-x-auto bg-white sticky top-[65px] z-40"></div>
     
-    <!-- 緊湊型列表容器 -->
     <main class="max-w-4xl mx-auto p-4 pb-28">
         <div id="bookContainer" class="space-y-2"></div>
     </main>
@@ -57,7 +56,7 @@
         </div>
     </div>
 
-    <!-- 書籍詳細資料彈窗 (全新功能) -->
+    <!-- 書籍詳細資料彈窗 -->
     <div id="detailModal" class="modal">
         <div class="bg-white rounded-2xl w-full max-w-md p-7 shadow-xl book-modal-content">
             <div class="flex justify-between items-start mb-4">
@@ -107,10 +106,10 @@
         const scriptURL = "https://script.google.com/macros/s/AKfycbzlN3KI7nsl5ZAqxWJFahZu-LkQTC78g85_fa8hU3_I6QhOx2uL-tes_Bu2eEb6Kdko/exec"; 
         const PRIVATE_PASS = "0416";
 
-        let publicCats = JSON.parse(localStorage.getItem('pub_cats_v101')) || [{name:'未讀'},{name:'已讀'}];
-        let secretCats = JSON.parse(localStorage.getItem('sec_cats_v101')) || [{name:'隱密區1'},{name:'隱密區2'}];
+        let publicCats = JSON.parse(localStorage.getItem('pub_cats_v102')) || [{name:'未讀'},{name:'已讀'}];
+        let secretCats = JSON.parse(localStorage.getItem('sec_cats_v102')) || [{name:'隱密區1'},{name:'隱密區2'}];
         let books = [];
-        let hasOrderChanged = false; // 追蹤排序是否有變動
+        let hasOrderChanged = false;
         
         let isSecretMode = false;
         let activeTab = isSecretMode ? (secretCats[0] ? secretCats[0].name : '') : (publicCats[0] ? publicCats[0].name : '');
@@ -125,7 +124,8 @@
                 if (password === PRIVATE_PASS) {
                     isSecretMode = true;
                     enterSecretStyle();
-                    autoMergeCategories();
+                    // 先去雲端抓取最新的隱密資料，抓到後會自動合併分類
+                    fetchAllData(false);
                 } else if (password !== null) {
                     alert("❌ 密碼錯誤！存取被拒。");
                 }
@@ -133,8 +133,8 @@
                 isSecretMode = false;
                 exitSecretStyle();
                 autoMergeCategories();
+                renderUI();
             }
-            renderUI();
         }
 
         function autoMergeCategories() {
@@ -145,7 +145,7 @@
                 bookCats.forEach(name => {
                     if(!secretCats.some(c => c.name === name)) secretCats.push({name});
                 });
-                localStorage.setItem('sec_cats_v101', JSON.stringify(secretCats));
+                localStorage.setItem('sec_cats_v102', JSON.stringify(secretCats));
                 if (!activeTab || !secretCats.some(c => c.name === activeTab)) {
                     activeTab = secretCats[0] ? secretCats[0].name : '';
                 }
@@ -153,7 +153,7 @@
                 bookCats.forEach(name => {
                     if(!publicCats.some(c => c.name === name)) publicCats.push({name});
                 });
-                localStorage.setItem('pub_cats_v101', JSON.stringify(publicCats));
+                localStorage.setItem('pub_cats_v102', JSON.stringify(publicCats));
                 if (!activeTab || !publicCats.some(c => c.name === activeTab)) {
                     activeTab = publicCats[0] ? publicCats[0].name : '';
                 }
@@ -165,7 +165,7 @@
             document.getElementById('bodyBg').className = "bg-zinc-950 min-h-screen font-sans transition-colors duration-300 text-zinc-100";
             document.getElementById('navBg').className = "bg-zinc-900 shadow-xl sticky top-0 z-50 border-b border-zinc-800";
             document.getElementById('tabContainer').className = "max-w-4xl mx-auto p-4 flex gap-6 border-b border-zinc-800 overflow-x-auto bg-zinc-900 sticky top-[65px] z-40 text-zinc-400";
-            document.getElementById('appTitle').innerText = "🔒 隱密私人書庫";
+            document.getElementById('appTitle').innerText = "🔒 私人書庫"; // 成功修改為 私人書庫
             document.getElementById('appTitle').className = "text-xl font-bold text-rose-400";
             document.getElementById('syncBtn').className = "ml-2 text-xs text-rose-400 font-bold border border-rose-900 px-3 py-1 rounded-lg bg-zinc-900";
             document.getElementById('modeBadge').classList.remove('hidden');
@@ -210,25 +210,21 @@
                 </button>
             `).join('');
 
-            // 依據當前選取的分類過濾書籍
             const filteredBooks = books.filter(b => (b.isSecret === isSecretMode) && b.category === activeTab);
             
             const itemBg = isSecretMode ? 'bg-zinc-900 border-zinc-800 text-zinc-100 hover:bg-zinc-800' : 'bg-white border-slate-100 text-slate-800 hover:bg-slate-50';
             const textMuted = isSecretMode ? 'text-zinc-500' : 'text-slate-400';
             const moveBtnColor = isSecretMode ? 'text-zinc-500 hover:text-zinc-300' : 'text-slate-400 hover:text-slate-700';
 
-            // 渲染極簡、緊湊、可上下移動排序的手風琴/清單介面
             document.getElementById('bookContainer').innerHTML = filteredBooks.map((b, index) => {
                 const globalIndex = books.findIndex(originalBook => originalBook.id === b.id);
                 return `
                 <div class="${itemBg} px-4 py-3 rounded-xl shadow-sm border flex items-center justify-between gap-3 transition-colors">
-                    <!-- 排序移動按鈕 -->
                     <div class="flex items-center gap-1">
                         <button onclick="moveBook(${globalIndex}, -1)" class="${moveBtnColor} font-mono p-1 text-xs active:scale-95 ${index === 0 ? 'opacity-20 pointer-events-none' : ''}">🔼</button>
                         <button onclick="moveBook(${globalIndex}, 1)" class="${moveBtnColor} font-mono p-1 text-xs active:scale-95 ${index === filteredBooks.length - 1 ? 'opacity-20 pointer-events-none' : ''}">🔽</button>
                     </div>
                     
-                    <!-- 點擊此區塊直接開啟詳情彈窗 -->
                     <div onclick="openDetailModal('${b.id}')" class="flex-1 min-w-0 cursor-pointer py-1 flex items-center justify-between gap-4">
                         <div class="truncate">
                             <span class="font-bold text-sm md:text-base">${b.title}</span>
@@ -256,12 +252,10 @@
                 </div>`).join('');
         }
 
-        // 新功能：在前端陣列中移動書籍順序
         function moveBook(globalIndex, direction) {
             const targetIndex = globalIndex + direction;
             if (globalIndex < 0 || globalIndex >= books.length || targetIndex < 0 || targetIndex >= books.length) return;
             
-            // 交換元素
             const temp = books[globalIndex];
             books[globalIndex] = books[targetIndex];
             books[targetIndex] = temp;
@@ -271,7 +265,6 @@
             renderUI();
         }
 
-        // 新功能：將全新順序一次性上傳雲端覆蓋排序
         async function saveSortOrder() {
             const btn = document.getElementById('saveOrderBtn');
             const oldText = btn.innerText;
@@ -279,7 +272,6 @@
             btn.disabled = true;
 
             try {
-                // 將所有書籍打包，發送 "reorder" 指令
                 await fetch(scriptURL, { 
                     method: "POST", 
                     mode: "no-cors", 
@@ -297,7 +289,6 @@
             }
         }
 
-        // 新功能：開啟書籍詳細資料彈窗
         function openDetailModal(id) {
             const b = books.find(book => book.id === id);
             if(!b) return;
@@ -315,7 +306,6 @@
                 linkContainer.classList.add('hidden');
             }
 
-            // 綁定彈窗內的編輯與刪除按鈕功能
             document.getElementById('detEditBtn').onclick = () => { closeModal('detailModal'); openEditModal(id); };
             document.getElementById('detDelBtn').onclick = () => { closeModal('detailModal'); deleteBookCloud(id); };
 
@@ -432,8 +422,8 @@
             if(!currentCats.some(c=>c.name===name)) {
                 currentCats.push({name});
             }
-            if(isSecretMode) localStorage.setItem('sec_cats_v101', JSON.stringify(secretCats));
-            else localStorage.setItem('pub_cats_v101', JSON.stringify(publicCats));
+            if(isSecretMode) localStorage.setItem('sec_cats_v102', JSON.stringify(secretCats));
+            else localStorage.setItem('pub_cats_v102', JSON.stringify(publicCats));
             
             document.getElementById('newCatName').value = "";
             activeTab = name;
@@ -444,11 +434,11 @@
             if(!confirm("確定刪除此分類？")) return;
             if(isSecretMode) {
                 secretCats = secretCats.filter(c => c.name !== name);
-                localStorage.setItem('sec_cats_v101', JSON.stringify(secretCats));
+                localStorage.setItem('sec_cats_v102', JSON.stringify(secretCats));
                 activeTab = secretCats[0] ? secretCats[0].name : '';
             } else {
                 publicCats = publicCats.filter(c => c.name !== name);
-                localStorage.setItem('pub_cats_v101', JSON.stringify(publicCats));
+                localStorage.setItem('pub_cats_v102', JSON.stringify(publicCats));
                 activeTab = publicCats[0] ? publicCats[0].name : '';
             }
             renderUI();
