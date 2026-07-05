@@ -104,18 +104,7 @@
 
     <script>
         const scriptURL = "https://script.google.com/macros/s/AKfycbzlN3KI7nsl5ZAqxWJFahZu-LkQTC78g85_fa8hU3_I6QhOx2uL-tes_Bu2eEb6Kdko/exec"; 
-        const PRIVATE_PASS = "0416";
-
-        let publicCats = JSON.parse(localStorage.getItem('pub_cats_v102')) || [{name:'未讀'},{name:'已讀'}];
-        let secretCats = JSON.parse(localStorage.getItem('sec_cats_v102')) || [{name:'隱密區1'},{name:'隱密區2'}];
-        let books = [];
-        let hasOrderChanged = false;
-        
-        let isSecretMode = false;
-        let activeTab = isSecretMode ? (secretCats[0] ? secretCats[0].name : '') : (publicCats[0] ? publicCats[0].name : '');
-
-        function triggerSecretMode() {
-            if (hasOrderChanged && !confirm("您有變更排序尚未儲存，切換模式將遺失排序，確定切換嗎？")) return;
+        const PRIVATE_PASS = "0416";換嗎？")) return;
             hasOrderChanged = false;
             document.getElementById('saveOrderBtn').classList.add('hidden');
 
