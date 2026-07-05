@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>紀錄 / tantingfang 的書庫</title>
-    <link rel="manifest" href="manifest.json?v=100">
+    <link rel="manifest" href="manifest.json?v=101">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .active-tab { border-bottom: 3px solid #215865; color: #215865; font-weight: bold; }
@@ -24,7 +24,8 @@
             <div class="flex items-center gap-2">
                 <h1 id="appTitle" class="text-xl font-bold text-slate-900">📖 書庫紀錄</h1>
                 <span id="tanBtn" onclick="triggerSecretMode()" class="text-[11px] text-slate-400 font-mono italic px-2 py-1">tan</span>
-                <button onclick="fetchAllData()" id="syncBtn" class="ml-2 text-sm text-emerald-700 font-bold border border-emerald-200 px-3 py-1.5 rounded-lg bg-emerald-50">🔄 同步雲端</button>
+                <button onclick="fetchAllData()" id="syncBtn" class="ml-2 text-sm text-emerald-700 font-bold border border-emerald-200 px-3 py-1.5 rounded-lg bg-emerald-50">🔄 同步</button>
+                <button onclick="saveSortOrder()" id="saveOrderBtn" class="hidden ml-1 text-sm text-amber-700 font-bold border border-amber-200 px-3 py-1.5 rounded-lg bg-amber-50">💾 儲存排序</button>
             </div>
             <div class="flex items-center gap-3">
                 <span id="modeBadge" class="hidden text-xs bg-rose-100 text-rose-600 font-bold px-3 py-1.5 rounded-full">🔒 隱密模式中</span>
@@ -34,10 +35,15 @@
     </nav>
 
     <div id="tabContainer" class="max-w-4xl mx-auto p-4 flex gap-6 border-b overflow-x-auto bg-white sticky top-[65px] z-40"></div>
-    <main id="bookContainer" class="max-w-4xl mx-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-5 pb-28"></main>
+    
+    <!-- 緊湊型列表容器 -->
+    <main class="max-w-4xl mx-auto p-4 pb-28">
+        <div id="bookContainer" class="space-y-2"></div>
+    </main>
 
     <button onclick="openAddModal()" id="addBtn" class="fixed bottom-8 right-8 bg-emerald-700 text-white w-16 h-16 rounded-full shadow-2xl text-4xl z-40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95">+</button>
 
+    <!-- 分類管理 -->
     <div id="categoryModal" class="modal">
         <div class="bg-white rounded-2xl w-full max-w-md p-7 shadow-xl book-modal-content">
             <h3 class="text-xl font-bold mb-5 text-center text-slate-900 modal-text">分類設定 (<span id="catModalMode">正常</span>)</h3>
@@ -51,6 +57,31 @@
         </div>
     </div>
 
+    <!-- 書籍詳細資料彈窗 (全新功能) -->
+    <div id="detailModal" class="modal">
+        <div class="bg-white rounded-2xl w-full max-w-md p-7 shadow-xl book-modal-content">
+            <div class="flex justify-between items-start mb-4">
+                <h3 id="detTitle" class="text-xl font-bold text-slate-900 modal-text">書名</h3>
+                <span id="detRating" class="text-sm text-amber-500 font-bold">🌕 5.0</span>
+            </div>
+            <p id="detAuthor" class="text-xs text-slate-400 italic mb-4">作者</p>
+            <div class="bg-slate-50 p-4 rounded-xl mb-4 book-modal-form max-h-60 overflow-y-auto">
+                <p id="detDesc" class="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">暫無心得簡介內容。</p>
+            </div>
+            <div id="detLinkContainer" class="mb-6 hidden">
+                <a id="detLink" href="#" target="_blank" class="text-sm text-sky-500 font-medium block truncate hover:underline">🔗 開啟設定網址</a>
+            </div>
+            <div class="flex justify-between items-center pt-4 border-t border-slate-100 modal-footer">
+                <div class="flex gap-2">
+                    <button id="detEditBtn" class="text-xs bg-slate-100 text-slate-700 px-3 py-2 rounded-md font-bold">🛠️ 編輯</button>
+                    <button id="detDelBtn" class="text-xs text-red-400 font-medium px-2 py-2">永久刪除</button>
+                </div>
+                <button onclick="closeModal('detailModal')" class="bg-slate-800 text-white px-5 py-2 rounded-md text-sm font-bold">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增/編輯書籍 -->
     <div id="bookModal" class="modal">
         <div class="bg-white rounded-2xl w-full max-w-md p-7 overflow-y-auto max-h-[95vh] shadow-xl book-modal-content">
             <h3 id="bookModalTitle" class="text-xl font-bold mb-6 text-slate-900 modal-text">新增書籍紀錄</h3>
@@ -76,15 +107,19 @@
         const scriptURL = "https://script.google.com/macros/s/AKfycbzlN3KI7nsl5ZAqxWJFahZu-LkQTC78g85_fa8hU3_I6QhOx2uL-tes_Bu2eEb6Kdko/exec"; 
         const PRIVATE_PASS = "0416";
 
-        // 更新儲存庫鍵名，完全切斷舊的干擾
-        let publicCats = JSON.parse(localStorage.getItem('pub_cats_v100')) || [{name:'未讀'},{name:'已讀'}];
-        let secretCats = JSON.parse(localStorage.getItem('sec_cats_v100')) || [{name:'隱密區1'},{name:'隱密區2'}];
+        let publicCats = JSON.parse(localStorage.getItem('pub_cats_v101')) || [{name:'未讀'},{name:'已讀'}];
+        let secretCats = JSON.parse(localStorage.getItem('sec_cats_v101')) || [{name:'隱密區1'},{name:'隱密區2'}];
         let books = [];
+        let hasOrderChanged = false; // 追蹤排序是否有變動
         
         let isSecretMode = false;
         let activeTab = isSecretMode ? (secretCats[0] ? secretCats[0].name : '') : (publicCats[0] ? publicCats[0].name : '');
 
         function triggerSecretMode() {
+            if (hasOrderChanged && !confirm("您有變更排序尚未儲存，切換模式將遺失排序，確定切換嗎？")) return;
+            hasOrderChanged = false;
+            document.getElementById('saveOrderBtn').classList.add('hidden');
+
             if (!isSecretMode) {
                 const password = prompt("🔒 此為隱密空間，請輸入安全密碼：");
                 if (password === PRIVATE_PASS) {
@@ -102,7 +137,6 @@
             renderUI();
         }
 
-        // 核心邏輯：把雲端抓回來的「書本分類」跟手機上現有的「空分類」完美合併，不抹除空分類！
         function autoMergeCategories() {
             const currentModeBooks = books.filter(b => b.isSecret === isSecretMode);
             const bookCats = [...new Set(currentModeBooks.map(b => b.category).filter(Boolean))];
@@ -111,7 +145,7 @@
                 bookCats.forEach(name => {
                     if(!secretCats.some(c => c.name === name)) secretCats.push({name});
                 });
-                localStorage.setItem('sec_cats_v100', JSON.stringify(secretCats));
+                localStorage.setItem('sec_cats_v101', JSON.stringify(secretCats));
                 if (!activeTab || !secretCats.some(c => c.name === activeTab)) {
                     activeTab = secretCats[0] ? secretCats[0].name : '';
                 }
@@ -119,7 +153,7 @@
                 bookCats.forEach(name => {
                     if(!publicCats.some(c => c.name === name)) publicCats.push({name});
                 });
-                localStorage.setItem('pub_cats_v100', JSON.stringify(publicCats));
+                localStorage.setItem('pub_cats_v101', JSON.stringify(publicCats));
                 if (!activeTab || !publicCats.some(c => c.name === activeTab)) {
                     activeTab = publicCats[0] ? publicCats[0].name : '';
                 }
@@ -138,14 +172,10 @@
             document.getElementById('addBtn').className = "fixed bottom-8 right-8 bg-rose-600 text-white w-16 h-16 rounded-full shadow-2xl text-4xl z-40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95";
             document.getElementById('catModalMode').innerText = "🔒 隱密模式";
 
-            const modalContents = document.querySelectorAll('.book-modal-content');
-            modalContents.forEach(m => m.classList.replace('bg-white', 'bg-zinc-900'));
-            const modalTexts = document.querySelectorAll('.modal-text');
-            modalTexts.forEach(t => t.classList.replace('text-slate-900', 'text-zinc-100'));
-            const modalForms = document.querySelectorAll('.book-modal-form');
-            modalForms.forEach(f => f.classList.replace('bg-slate-100', 'bg-zinc-800'));
-            const modalFooters = document.querySelectorAll('.modal-footer');
-            modalFooters.forEach(f => f.classList.replace('border-slate-100', 'border-zinc-800'));
+            document.querySelectorAll('.book-modal-content').forEach(m => m.classList.replace('bg-white', 'bg-zinc-900'));
+            document.querySelectorAll('.modal-text').forEach(t => t.classList.replace('text-slate-900', 'text-zinc-100'));
+            document.querySelectorAll('.book-modal-form').forEach(f => f.classList.replace('bg-slate-100', 'bg-zinc-800'));
+            document.querySelectorAll('.modal-footer').forEach(f => f.classList.replace('border-slate-100', 'border-zinc-800'));
         }
 
         function exitSecretStyle() {
@@ -160,14 +190,10 @@
             document.getElementById('addBtn').className = "fixed bottom-8 right-8 bg-emerald-700 text-white w-16 h-16 rounded-full shadow-2xl text-4xl z-40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95";
             document.getElementById('catModalMode').innerText = "正常模式";
 
-            const modalContents = document.querySelectorAll('.book-modal-content');
-            modalContents.forEach(m => m.classList.replace('bg-zinc-900', 'bg-white'));
-            const modalTexts = document.querySelectorAll('.modal-text');
-            modalTexts.forEach(t => t.classList.replace('text-zinc-100', 'text-slate-900'));
-            const modalForms = document.querySelectorAll('.book-modal-form');
-            modalForms.forEach(f => f.classList.replace('bg-zinc-800', 'bg-slate-100'));
-            const modalFooters = document.querySelectorAll('.modal-footer');
-            modalFooters.forEach(f => f.classList.replace('border-zinc-800', 'border-slate-100'));
+            document.querySelectorAll('.book-modal-content').forEach(m => m.classList.replace('bg-zinc-900', 'bg-white'));
+            document.querySelectorAll('.modal-text').forEach(t => t.classList.replace('text-zinc-100', 'text-slate-900'));
+            document.querySelectorAll('.book-modal-form').forEach(f => f.classList.replace('bg-zinc-800', 'bg-slate-100'));
+            document.querySelectorAll('.modal-footer').forEach(f => f.classList.replace('border-zinc-800', 'border-slate-100'));
         }
 
         function renderUI() {
@@ -184,34 +210,40 @@
                 </button>
             `).join('');
 
+            // 依據當前選取的分類過濾書籍
             const filteredBooks = books.filter(b => (b.isSecret === isSecretMode) && b.category === activeTab);
             
-            const cardBg = isSecretMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-100';
-            const textBody = isSecretMode ? 'text-zinc-300' : 'text-slate-600';
+            const itemBg = isSecretMode ? 'bg-zinc-900 border-zinc-800 text-zinc-100 hover:bg-zinc-800' : 'bg-white border-slate-100 text-slate-800 hover:bg-slate-50';
             const textMuted = isSecretMode ? 'text-zinc-500' : 'text-slate-400';
-            const btnBg = isSecretMode ? 'bg-zinc-800' : 'bg-slate-50';
+            const moveBtnColor = isSecretMode ? 'text-zinc-500 hover:text-zinc-300' : 'text-slate-400 hover:text-slate-700';
 
-            document.getElementById('bookContainer').innerHTML = filteredBooks.map((b) => {
+            // 渲染極簡、緊湊、可上下移動排序的手風琴/清單介面
+            document.getElementById('bookContainer').innerHTML = filteredBooks.map((b, index) => {
+                const globalIndex = books.findIndex(originalBook => originalBook.id === b.id);
                 return `
-                <div class="${cardBg} p-6 rounded-2xl shadow-lg border relative transition-all hover:shadow-xl">
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="flex-1 pr-4">
-                            <h4 class="font-bold text-lg">${b.title}</h4>
-                            <p class="text-xs ${textMuted} italic mt-1">${b.author || '未知作者'}</p>
-                        </div>
-                        <span class="text-sm text-amber-400 font-bold flex items-center gap-1.5 whitespace-nowrap">🌕 ${parseFloat(b.rating).toFixed(1)}</span>
+                <div class="${itemBg} px-4 py-3 rounded-xl shadow-sm border flex items-center justify-between gap-3 transition-colors">
+                    <!-- 排序移動按鈕 -->
+                    <div class="flex items-center gap-1">
+                        <button onclick="moveBook(${globalIndex}, -1)" class="${moveBtnColor} font-mono p-1 text-xs active:scale-95 ${index === 0 ? 'opacity-20 pointer-events-none' : ''}">🔼</button>
+                        <button onclick="moveBook(${globalIndex}, 1)" class="${moveBtnColor} font-mono p-1 text-xs active:scale-95 ${index === filteredBooks.length - 1 ? 'opacity-20 pointer-events-none' : ''}">🔽</button>
                     </div>
-                    <p class="text-sm ${textBody} line-clamp-3 mt-3 leading-relaxed">${b.desc || '無心得內容。'}</p>
-                    ${b.link ? `<a href="${b.link}" target="_blank" class="text-xs text-sky-400 block mt-4 truncate hover:underline">🔗 開啟網址</a>` : ''}
-                    <div class="flex justify-between items-center mt-5 pt-4 border-t ${isSecretMode ? 'border-zinc-800' : 'border-slate-50'}">
-                        <button onclick="openEditModal('${b.id}')" class="text-[11px] ${btnBg} px-3 py-1.5 rounded-md font-bold hover:opacity-80">🛠️ 編輯</button>
-                        <button onclick="deleteBookCloud('${b.id}')" class="text-[11px] text-red-400 hover:text-red-500 font-medium px-2 py-1">永久刪除</button>
+                    
+                    <!-- 點擊此區塊直接開啟詳情彈窗 -->
+                    <div onclick="openDetailModal('${b.id}')" class="flex-1 min-w-0 cursor-pointer py-1 flex items-center justify-between gap-4">
+                        <div class="truncate">
+                            <span class="font-bold text-sm md:text-base">${b.title}</span>
+                            ${b.author ? `<span class="text-xs ${textMuted} ml-2 font-normal">(${b.author})</span>` : ''}
+                        </div>
+                        <span class="text-xs text-amber-500 font-bold whitespace-nowrap">🌕 ${parseFloat(b.rating).toFixed(1)}</span>
                     </div>
                 </div>`;
             }).join('');
 
-            const idBtns = document.querySelectorAll('.idBtn');
-            idBtns.forEach(btn => {
+            if(filteredBooks.length === 0) {
+                document.getElementById('bookContainer').innerHTML = `<div class="text-center py-12 ${textMuted} text-xs">此分類目前是空的。點右下角 + 新增書本</div>`;
+            }
+
+            document.querySelectorAll('.idBtn').forEach(btn => {
                 if(isSecretMode) { btn.classList.replace('bg-emerald-700','bg-rose-600'); }
                 else { btn.classList.replace('bg-rose-600','bg-emerald-700'); }
             });
@@ -224,7 +256,79 @@
                 </div>`).join('');
         }
 
-        function switchTab(name) { activeTab = name; renderUI(); }
+        // 新功能：在前端陣列中移動書籍順序
+        function moveBook(globalIndex, direction) {
+            const targetIndex = globalIndex + direction;
+            if (globalIndex < 0 || globalIndex >= books.length || targetIndex < 0 || targetIndex >= books.length) return;
+            
+            // 交換元素
+            const temp = books[globalIndex];
+            books[globalIndex] = books[targetIndex];
+            books[targetIndex] = temp;
+            
+            hasOrderChanged = true;
+            document.getElementById('saveOrderBtn').classList.remove('hidden');
+            renderUI();
+        }
+
+        // 新功能：將全新順序一次性上傳雲端覆蓋排序
+        async function saveSortOrder() {
+            const btn = document.getElementById('saveOrderBtn');
+            const oldText = btn.innerText;
+            btn.innerText = "⏳ 儲存中...";
+            btn.disabled = true;
+
+            try {
+                // 將所有書籍打包，發送 "reorder" 指令
+                await fetch(scriptURL, { 
+                    method: "POST", 
+                    mode: "no-cors", 
+                    body: JSON.stringify({ action: "reorder", books: books }) 
+                });
+                hasOrderChanged = false;
+                btn.classList.add('hidden');
+                alert("✨ 順序已完美儲存至雲端 Excel！");
+                await fetchAllData(false);
+            } catch (e) {
+                alert("排序儲存失敗，請重試！");
+            } finally {
+                btn.innerText = oldText;
+                btn.disabled = false;
+            }
+        }
+
+        // 新功能：開啟書籍詳細資料彈窗
+        function openDetailModal(id) {
+            const b = books.find(book => book.id === id);
+            if(!b) return;
+
+            document.getElementById('detTitle').innerText = b.title;
+            document.getElementById('detAuthor').innerText = b.author ? `作者：${b.author}` : "未知作者";
+            document.getElementById('detRating').innerText = `🌕 ${parseFloat(b.rating).toFixed(1)}`;
+            document.getElementById('detDesc').innerText = b.desc || "無心得內容。";
+
+            const linkContainer = document.getElementById('detLinkContainer');
+            if(b.link) {
+                linkContainer.classList.remove('hidden');
+                document.getElementById('detLink').href = b.link;
+            } else {
+                linkContainer.classList.add('hidden');
+            }
+
+            // 綁定彈窗內的編輯與刪除按鈕功能
+            document.getElementById('detEditBtn').onclick = () => { closeModal('detailModal'); openEditModal(id); };
+            document.getElementById('detDelBtn').onclick = () => { closeModal('detailModal'); deleteBookCloud(id); };
+
+            showModal('detailModal');
+        }
+
+        function switchTab(name) { 
+            if (hasOrderChanged && !confirm("您有變更排序尚未儲存，切換分類將遺失排序，確定切換嗎？")) return;
+            hasOrderChanged = false;
+            document.getElementById('saveOrderBtn').classList.add('hidden');
+            activeTab = name; 
+            renderUI(); 
+        }
 
         function openAddModal() {
             document.getElementById('bookId').value = "";
@@ -253,6 +357,10 @@
         }
 
         async function saveBook() {
+            if (hasOrderChanged && !confirm("您有變更排序尚未儲存，儲存書籍將會重置未儲存的排序，確定繼續嗎？")) return;
+            hasOrderChanged = false;
+            document.getElementById('saveOrderBtn').classList.add('hidden');
+
             const bookId = document.getElementById('bookId').value;
             const isEditing = bookId !== "";
 
@@ -313,7 +421,7 @@
             } catch (e) { 
                 if(showError) alert("同步失敗！"); 
             } finally {
-                if(btn) btn.innerText = "🔄 同步雲端";
+                if(btn) btn.innerText = "🔄 同步";
             }
         }
 
@@ -324,8 +432,8 @@
             if(!currentCats.some(c=>c.name===name)) {
                 currentCats.push({name});
             }
-            if(isSecretMode) localStorage.setItem('sec_cats_v100', JSON.stringify(secretCats));
-            else localStorage.setItem('pub_cats_v100', JSON.stringify(publicCats));
+            if(isSecretMode) localStorage.setItem('sec_cats_v101', JSON.stringify(secretCats));
+            else localStorage.setItem('pub_cats_v101', JSON.stringify(publicCats));
             
             document.getElementById('newCatName').value = "";
             activeTab = name;
@@ -336,11 +444,11 @@
             if(!confirm("確定刪除此分類？")) return;
             if(isSecretMode) {
                 secretCats = secretCats.filter(c => c.name !== name);
-                localStorage.setItem('sec_cats_v100', JSON.stringify(secretCats));
+                localStorage.setItem('sec_cats_v101', JSON.stringify(secretCats));
                 activeTab = secretCats[0] ? secretCats[0].name : '';
             } else {
                 publicCats = publicCats.filter(c => c.name !== name);
-                localStorage.setItem('pub_cats_v100', JSON.stringify(publicCats));
+                localStorage.setItem('pub_cats_v101', JSON.stringify(publicCats));
                 activeTab = publicCats[0] ? publicCats[0].name : '';
             }
             renderUI();
