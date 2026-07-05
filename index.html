@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>紀錄 / tantingfang 的書庫</title>
-    <link rel="manifest" href="manifest.json?v=105">
+    <link rel="manifest" href="manifest.json?v=107">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .active-tab { border-bottom: 3px solid #215865; color: #215865; font-weight: bold; }
@@ -106,20 +106,19 @@
         const scriptURL = "https://script.google.com/macros/s/AKfycbzlN3KI7nsl5ZAqxWJFahZu-LkQTC78g85_fa8hU3_I6QhOx2uL-tes_Bu2eEb6Kdko/exec"; 
         const PRIVATE_PASS = "0416";
 
-        // 預設基礎分類
-        let publicCats = JSON.parse(localStorage.getItem('pub_cats_v105')) || [{name:'未讀'},{name:'已讀'}];
-        let secretCats = JSON.parse(localStorage.getItem('sec_cats_v105')) || [{name:'未讀'},{name:'已讀'}];
+        // 分離本地快取鍵名，確保互不干擾
+        let publicCats = JSON.parse(localStorage.getItem('pub_cats_v107')) || [{name:'未讀'},{name:'已讀'}];
+        let secretCats = JSON.parse(localStorage.getItem('sec_cats_v107')) || [{name:'未讀'},{name:'已讀'}];
         let books = [];
         let hasOrderChanged = false;
         
         let isSecretMode = false;
         let activeTab = "";
 
-        // 網頁初始化優先同步雲端
         window.addEventListener('DOMContentLoaded', () => {
             if (publicCats.length > 0) activeTab = publicCats[0].name;
             renderUI();
-            fetchAllData(false);
+            fetchAllData(false); // 初始載入正常模式（工作表1）
         });
 
         function triggerSecretMode() {
@@ -131,9 +130,9 @@
                 const password = prompt("此為隱密空間，請輸入安全密碼：");
                 if (password === PRIVATE_PASS) {
                     isSecretMode = true;
-                    activeTab = ""; // 切換時先清空，等資料進來或抓預設
+                    activeTab = ""; 
                     enterSecretStyle();
-                    fetchAllData(false);
+                    fetchAllData(false); // 進入隱密模式，強制抓取工作表2
                 } else if (password !== null) {
                     alert("❌ 密碼錯誤！存取被拒。");
                 }
@@ -141,25 +140,22 @@
                 isSecretMode = false;
                 activeTab = publicCats[0] ? publicCats[0].name : '';
                 exitSecretStyle();
-                autoMergeCategories();
-                renderUI();
+                fetchAllData(false); // 返回正常模式，強制抓取工作表1
             }
         }
 
-        // 核心修正：自動從雲端回傳的書籍中提取所有分類，確保永不丟失
         function autoMergeCategories() {
+            // 過濾當前模式下的書籍
             const currentModeBooks = books.filter(b => b.isSecret === isSecretMode);
             const bookCats = [...new Set(currentModeBooks.map(b => b.category).filter(Boolean))];
             
             if (isSecretMode) {
-                // 確保預設的未讀已讀還在
                 if(!secretCats.some(c => c.name === '未讀')) secretCats.push({name:'未讀'});
                 if(!secretCats.some(c => c.name === '已讀')) secretCats.push({name:'已讀'});
-                // 讀取雲端有的分類
                 bookCats.forEach(name => {
                     if(!secretCats.some(c => c.name === name)) secretCats.push({name});
                 });
-                localStorage.setItem('sec_cats_v105', JSON.stringify(secretCats));
+                localStorage.setItem('sec_cats_v107', JSON.stringify(secretCats));
                 if (!activeTab || !secretCats.some(c => c.name === activeTab)) {
                     activeTab = secretCats[0] ? secretCats[0].name : '';
                 }
@@ -169,7 +165,7 @@
                 bookCats.forEach(name => {
                     if(!publicCats.some(c => c.name === name)) publicCats.push({name});
                 });
-                localStorage.setItem('pub_cats_v105', JSON.stringify(publicCats));
+                localStorage.setItem('pub_cats_v107', JSON.stringify(publicCats));
                 if (!activeTab || !publicCats.some(c => c.name === activeTab)) {
                     activeTab = publicCats[0] ? publicCats[0].name : '';
                 }
@@ -181,7 +177,7 @@
             document.getElementById('bodyBg').className = "bg-zinc-950 min-h-screen font-sans transition-colors duration-300 text-zinc-100";
             document.getElementById('navBg').className = "bg-zinc-900 shadow-xl sticky top-0 z-50 border-b border-zinc-800";
             document.getElementById('tabContainer').className = "max-w-4xl mx-auto p-4 flex gap-6 border-b border-zinc-800 overflow-x-auto bg-zinc-900 sticky top-[65px] z-40 text-zinc-400";
-            document.getElementById('appTitle').innerText = "私人書庫"; // 移除了鎖頭 🔒
+            document.getElementById('appTitle').innerText = "私人書庫"; 
             document.getElementById('appTitle').className = "text-xl font-bold text-rose-400";
             document.getElementById('syncBtn').className = "ml-2 text-xs text-rose-400 font-bold border border-rose-900 px-3 py-1 rounded-lg bg-zinc-900";
             document.getElementById('modeBadge').classList.remove('hidden');
@@ -226,7 +222,8 @@
                 </button>
             `).join('');
 
-            const filteredBooks = books.filter(b => (b.isSecret === isSecretMode) && b.category === activeTab);
+            // 過濾出符合當前模式與分類的書
+            const filteredBooks = books.filter(b => b.category === activeTab);
             
             const itemBg = isSecretMode ? 'bg-zinc-900 border-zinc-800 text-zinc-100 hover:bg-zinc-800' : 'bg-white border-slate-100 text-slate-800 hover:bg-slate-50';
             const textMuted = isSecretMode ? 'text-zinc-500' : 'text-slate-400';
@@ -291,11 +288,15 @@
                 await fetch(scriptURL, { 
                     method: "POST", 
                     mode: "no-cors", 
-                    body: JSON.stringify({ action: "reorder", books: books }) 
+                    body: JSON.stringify({ 
+                        action: "reorder", 
+                        books: books, 
+                        sheetName: isSecretMode ? "工作表2" : "工作表1" 
+                    }) 
                 });
                 hasOrderChanged = false;
                 btn.classList.add('hidden');
-                alert("✨ 順序已完美儲存至雲端 Excel！");
+                alert("✨ 排序已成功儲存至雲端！");
                 await fetchAllData(false);
             } catch (e) {
                 alert("排序儲存失敗，請重試！");
@@ -338,7 +339,7 @@
 
         function openAddModal() {
             document.getElementById('bookId').value = "";
-            document.getElementById('bookModalTitle').innerText = isSecretMode ? "新增安全加密書籍" : "新增書籍紀錄";
+            document.getElementById('bookModalTitle').innerText = isSecretMode ? "新增安全書籍" : "新增書籍紀錄";
             document.getElementById('saveBtn').innerText = "儲存並新增至雲端";
             ['bTitle','author','desc','link'].forEach(id => document.getElementById(id).value = "");
             document.getElementById('rating').value = "5";
@@ -379,7 +380,8 @@
                 link: document.getElementById('link').value.trim(),
                 rating: document.getElementById('rating').value || "5",
                 category: document.getElementById('bCat').value,
-                isSecret: isSecretMode
+                isSecret: isSecretMode,
+                sheetName: isSecretMode ? "工作表2" : "工作表1" 
             };
 
             if (!book.title) return alert("書名是必填的喔！");
@@ -405,7 +407,10 @@
             if(!confirm("⚠️ 確定連同試算表永久刪除？")) return;
             try {
                 await fetch(scriptURL, { method: "POST", mode: "no-cors", body: JSON.stringify({
-                    action: "delete", id: id, isSecret: isSecretMode
+                    action: "delete", 
+                    id: id, 
+                    isSecret: isSecretMode, 
+                    sheetName: isSecretMode ? "工作表2" : "工作表1"
                 }) });
                 await fetchAllData(false);
             } catch (e) { alert("雲端刪除失敗！"); }
@@ -414,7 +419,11 @@
         async function fetchAllData(showError = true) {
             const btn = document.getElementById('syncBtn');
             if(btn) btn.innerText = "⚡ 同步中...";
-            const finalURL = isSecretMode ? (scriptURL + "?pass=" + PRIVATE_PASS) : scriptURL;
+            
+            // 精準分流：私密模式強制傳 sheet=工作表2 ；非私密模式強制傳 sheet=工作表1
+            const finalURL = isSecretMode 
+                ? (scriptURL + "?pass=" + PRIVATE_PASS + "&sheet=工作表2") 
+                : (scriptURL + "?sheet=工作表1");
 
             try {
                 const response = await fetch(finalURL);
@@ -438,8 +447,8 @@
             if(!currentCats.some(c=>c.name===name)) {
                 currentCats.push({name});
             }
-            if(isSecretMode) localStorage.setItem('sec_cats_v105', JSON.stringify(secretCats));
-            else localStorage.setItem('pub_cats_v105', JSON.stringify(publicCats));
+            if(isSecretMode) localStorage.setItem('sec_cats_v107', JSON.stringify(secretCats));
+            else localStorage.setItem('pub_cats_v107', JSON.stringify(publicCats));
             
             document.getElementById('newCatName').value = "";
             activeTab = name;
@@ -450,11 +459,11 @@
             if(!confirm("確定刪除此分類？")) return;
             if(isSecretMode) {
                 secretCats = secretCats.filter(c => c.name !== name);
-                localStorage.setItem('sec_cats_v105', JSON.stringify(secretCats));
+                localStorage.setItem('sec_cats_v107', JSON.stringify(secretCats));
                 activeTab = secretCats[0] ? secretCats[0].name : '';
             } else {
                 publicCats = publicCats.filter(c => c.name !== name);
-                localStorage.setItem('pub_cats_v105', JSON.stringify(publicCats));
+                localStorage.setItem('pub_cats_v107', JSON.stringify(publicCats));
                 activeTab = publicCats[0] ? publicCats[0].name : '';
             }
             renderUI();
