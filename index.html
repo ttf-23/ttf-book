@@ -7,7 +7,25 @@
     <link rel="manifest" href="manifest.json?v=102">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .active-tab { b text-amber-700 font-bold border border-amber-200 px-3 py-1.5 rounded-lg bg-amber-50">💾 儲存排序</button>
+        .active-tab { border-bottom: 3px solid #215865; color: #215865; font-weight: bold; }
+        .active-tab-secret { border-bottom: 3px solid #f43f5e; color: #f43f5e; font-weight: bold; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+        .modal.show { display: flex; }
+        #tanBtn { cursor: pointer; user-select: none; opacity: 0.15; transition: opacity 0.3s; }
+        #tanBtn:hover { opacity: 0.8; }
+        input, textarea, select { outline: none; border-radius: 8px; padding: 10px; border: 1px solid #e2e8f0; width: 100%; font-size: 14px; background: white; color: #1a202c; }
+        .dark input, .dark textarea, .dark select { background: #2d3748; color: #e2e8f0; border-color: #4a5568; }
+    </style>
+</head>
+<body id="bodyBg" class="bg-slate-50 min-h-screen font-sans transition-colors duration-300">
+
+    <nav id="navBg" class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <h1 id="appTitle" class="text-xl font-bold text-slate-900">📖 書庫紀錄</h1>
+                <span id="tanBtn" onclick="triggerSecretMode()" class="text-[11px] text-slate-400 font-mono italic px-2 py-1">tan</span>
+                <button onclick="fetchAllData()" id="syncBtn" class="ml-2 text-sm text-emerald-700 font-bold border border-emerald-200 px-3 py-1.5 rounded-lg bg-emerald-50">🔄 同步</button>
+                <button onclick="saveSortOrder()" id="saveOrderBtn" class="hidden ml-1 text-sm text-amber-700 font-bold border border-amber-200 px-3 py-1.5 rounded-lg bg-amber-50">💾 儲存排序</button>
             </div>
             <div class="flex items-center gap-3">
                 <span id="modeBadge" class="hidden text-xs bg-rose-100 text-rose-600 font-bold px-3 py-1.5 rounded-full">🔒 隱密模式中</span>
@@ -86,7 +104,18 @@
 
     <script>
         const scriptURL = "https://script.google.com/macros/s/AKfycbzlN3KI7nsl5ZAqxWJFahZu-LkQTC78g85_fa8hU3_I6QhOx2uL-tes_Bu2eEb6Kdko/exec"; 
-        const PRIVATE_PASS = "0416";換嗎？")) return;
+        const PRIVATE_PASS = "0416";
+
+        let publicCats = JSON.parse(localStorage.getItem('pub_cats_v102')) || [{name:'未讀'},{name:'已讀'}];
+        let secretCats = JSON.parse(localStorage.getItem('sec_cats_v102')) || [{name:'隱密區1'},{name:'隱密區2'}];
+        let books = [];
+        let hasOrderChanged = false;
+        
+        let isSecretMode = false;
+        let activeTab = isSecretMode ? (secretCats[0] ? secretCats[0].name : '') : (publicCats[0] ? publicCats[0].name : '');
+
+        function triggerSecretMode() {
+            if (hasOrderChanged && !confirm("您有變更排序尚未儲存，切換模式將遺失排序，確定切換嗎？")) return;
             hasOrderChanged = false;
             document.getElementById('saveOrderBtn').classList.add('hidden');
 
