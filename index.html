@@ -35,7 +35,7 @@
     </nav>
 
     <div id="tabContainer" class="max-w-4xl mx-auto p-4 flex gap-6 border-b overflow-x-auto bg-white sticky top-[65px] z-40"></div>
-    
+
     <main class="max-w-4xl mx-auto p-4 pb-28">
         <div id="bookContainer" class="space-y-2"></div>
     </main>
@@ -87,7 +87,7 @@
             <input type="hidden" id="bookId">
             <div class="space-y-4 book-modal-form">
                 <div><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">書名 (必填)</label><input id="bTitle" type="text" placeholder="輸入書名..."></div>
-                <div><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">作者</label><input id="author" type="text" placeholder="作者名稱..."></div>
+                <div><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">作者</label><input id="author" type="text" placeholder="作者名稱...（相同作者會自動歸在一起）"></div>
                 <div><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">簡介 (心得)</label><textarea id="desc" placeholder="寫點閱讀心得或簡介..." class="h-28"></textarea></div>
                 <div><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">網址</label><input id="link" type="text" placeholder="https://..."></div>
                 <div class="flex gap-4">
@@ -111,7 +111,7 @@
         let secretCats = JSON.parse(localStorage.getItem('sec_cats_v108')) || [{name:'未讀'},{name:'已讀'}];
         let books = [];
         let hasOrderChanged = false;
-        
+
         let isSecretMode = false;
         let activeTab = "";
 
@@ -131,11 +131,11 @@
                 if (password === PRIVATE_PASS) {
                     isSecretMode = true;
                     activeTab = ""; 
-                    
+
                     // ✨ 關鍵修正：換模式時立刻把手機畫面上的舊書清空，才不會留著上一個模式的書
                     books = []; 
                     document.getElementById('bookContainer').innerHTML = `<div class="text-center py-12 text-zinc-500 text-xs">🔒 正在解密並載入私人書庫...</div>`;
-                    
+
                     enterSecretStyle();
                     fetchAllData(false); // 立即去抓工作表2
                 } else if (password !== null) {
@@ -144,11 +144,11 @@
             } else {
                 isSecretMode = false;
                 activeTab = publicCats[0] ? publicCats[0].name : '';
-                
+
                 // ✨ 關鍵修正：換模式時立刻把手機畫面上的舊書清空
                 books = []; 
                 document.getElementById('bookContainer').innerHTML = `<div class="text-center py-12 text-slate-400 text-xs">📖 正在載入一般書庫...</div>`;
-                
+
                 exitSecretStyle();
                 fetchAllData(false); // 立即去抓工作表1
             }
@@ -156,7 +156,7 @@
 
         function autoMergeCategories() {
             const bookCats = [...new Set(books.map(b => b.category).filter(Boolean))];
-            
+
             if (isSecretMode) {
                 if(!secretCats.some(c => c.name === '未讀')) secretCats.push({name:'未讀'});
                 if(!secretCats.some(c => c.name === '已讀')) secretCats.push({name:'已讀'});
@@ -216,6 +216,12 @@
             document.querySelectorAll('.modal-footer').forEach(f => f.classList.replace('border-zinc-800', 'border-slate-100'));
         }
 
+        function escapeHTML(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[ch]);
+        }
+
         function renderUI() {
             const currentCats = isSecretMode ? secretCats : publicCats;
             const tabBtnStyle = isSecretMode ? 'active-tab-secret' : 'active-tab';
@@ -225,37 +231,66 @@
             }
 
             document.getElementById('tabContainer').innerHTML = currentCats.map(cat => `
-                <button onclick="switchTab('${cat.name}')" class="pb-2.5 whitespace-nowrap text-sm ${activeTab === cat.name ? tabBtnStyle : 'text-slate-400 hover:text-slate-600'}">
-                    ${cat.name}
+                <button onclick="switchTab('${escapeHTML(cat.name)}')" class="pb-2.5 whitespace-nowrap text-sm ${activeTab === cat.name ? tabBtnStyle : 'text-slate-400 hover:text-slate-600'}">
+                    ${escapeHTML(cat.name)}
                 </button>
             `).join('');
 
             const filteredBooks = books.filter(b => b.category === activeTab);
-            
             const itemBg = isSecretMode ? 'bg-zinc-900 border-zinc-800 text-zinc-100 hover:bg-zinc-800' : 'bg-white border-slate-100 text-slate-800 hover:bg-slate-50';
             const textMuted = isSecretMode ? 'text-zinc-500' : 'text-slate-400';
             const moveBtnColor = isSecretMode ? 'text-zinc-500 hover:text-zinc-300' : 'text-slate-400 hover:text-slate-700';
+            const folderBg = isSecretMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200';
+            const folderText = isSecretMode ? 'text-zinc-200' : 'text-slate-700';
 
-            document.getElementById('bookContainer').innerHTML = filteredBooks.map((b, index) => {
-                const globalIndex = books.findIndex(originalBook => originalBook.id === b.id);
-                return `
-                <div class="${itemBg} px-4 py-3 rounded-xl shadow-sm border flex items-center justify-between gap-3 transition-colors">
-                    <div class="flex items-center gap-1">
-                        <button onclick="moveBook(${globalIndex}, -1)" class="${moveBtnColor} font-mono p-1 text-xs active:scale-95 ${index === 0 ? 'opacity-20 pointer-events-none' : ''}">🔼</button>
-                        <button onclick="moveBook(${globalIndex}, 1)" class="${moveBtnColor} font-mono p-1 text-xs active:scale-95 ${index === filteredBooks.length - 1 ? 'opacity-20 pointer-events-none' : ''}">🔽</button>
-                    </div>
-                    
-                    <div onclick="openDetailModal('${b.id}')" class="flex-1 min-w-0 cursor-pointer py-1 flex items-center justify-between gap-4">
-                        <div class="truncate">
-                            <span class="font-bold text-sm md:text-base">${b.title}</span>
-                            ${b.author ? `<span class="text-xs ${textMuted} ml-2 font-normal">(${b.author})</span>` : ''}
+            // 依作者自動分組；作者欄位相同的書籍會進入同一個可展開資料夾。
+            // 沒有填作者的書籍會集中在「未填寫作者」資料夾。
+            const authorGroups = new Map();
+            filteredBooks.forEach(book => {
+                const authorName = (book.author || '').trim() || '未填寫作者';
+                if (!authorGroups.has(authorName)) authorGroups.set(authorName, []);
+                authorGroups.get(authorName).push(book);
+            });
+
+            document.getElementById('bookContainer').innerHTML = [...authorGroups.entries()].map(([authorName, groupBooks]) => {
+                const safeAuthor = escapeHTML(authorName);
+                const rows = groupBooks.map(book => {
+                    const globalIndex = books.findIndex(originalBook => originalBook.id === book.id);
+                    const categoryIndex = filteredBooks.findIndex(item => item.id === book.id);
+                    const safeTitle = escapeHTML(book.title);
+                    const safeBookId = escapeHTML(book.id);
+                    const safeBookAuthor = escapeHTML(book.author || '');
+                    const rating = Number.parseFloat(book.rating);
+                    return `
+                    <div class="${itemBg} px-4 py-3 rounded-xl shadow-sm border flex items-center justify-between gap-3 transition-colors">
+                        <div class="flex items-center gap-1">
+                            <button onclick="moveBook(${globalIndex}, -1)" class="${moveBtnColor} font-mono p-1 text-xs active:scale-95 ${categoryIndex === 0 ? 'opacity-20 pointer-events-none' : ''}">🔼</button>
+                            <button onclick="moveBook(${globalIndex}, 1)" class="${moveBtnColor} font-mono p-1 text-xs active:scale-95 ${categoryIndex === filteredBooks.length - 1 ? 'opacity-20 pointer-events-none' : ''}">🔽</button>
                         </div>
-                        <span class="text-xs text-amber-500 font-bold whitespace-nowrap">🌕 ${parseFloat(b.rating).toFixed(1)}</span>
-                    </div>
-                </div>`;
+                        <div onclick="openDetailModal('${safeBookId}')" class="flex-1 min-w-0 cursor-pointer py-1 flex items-center justify-between gap-4">
+                            <div class="truncate">
+                                <span class="font-bold text-sm md:text-base">${safeTitle}</span>
+                                ${safeBookAuthor ? `<span class="text-xs ${textMuted} ml-2 font-normal">(${safeBookAuthor})</span>` : ''}
+                            </div>
+                            <span class="text-xs text-amber-500 font-bold whitespace-nowrap">🌕 ${Number.isFinite(rating) ? rating.toFixed(1) : '5.0'}</span>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                return `
+                <details class="${folderBg} border rounded-xl shadow-sm overflow-hidden mb-3">
+                    <summary class="cursor-pointer list-none px-4 py-3 flex items-center justify-between gap-3 ${folderText} select-none">
+                        <span class="flex items-center gap-2 min-w-0">
+                            <span class="text-lg">📁</span>
+                            <span class="font-bold text-sm truncate">${safeAuthor}</span>
+                        </span>
+                        <span class="text-xs ${textMuted} whitespace-nowrap">${groupBooks.length} 本　⌄</span>
+                    </summary>
+                    <div class="px-2 pb-2 space-y-2">${rows}</div>
+                </details>`;
             }).join('');
 
-            if(filteredBooks.length === 0 && books.length > 0) {
+            if(filteredBooks.length === 0) {
                 document.getElementById('bookContainer').innerHTML = `<div class="text-center py-12 ${textMuted} text-xs">此分類目前是空的。點右下角 + 新增書本</div>`;
             }
 
@@ -264,22 +299,22 @@
                 else { btn.classList.replace('bg-rose-600','bg-emerald-700'); }
             });
 
-            document.getElementById('bCat').innerHTML = currentCats.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            document.getElementById('bCat').innerHTML = currentCats.map(c => `<option value="${escapeHTML(c.name)}">${escapeHTML(c.name)}</option>`).join('');
             document.getElementById('categoryList').innerHTML = currentCats.map((c, i) => `
                 <div class="flex justify-between items-center ${isSecretMode ? 'bg-zinc-800 border-zinc-700' : 'bg-slate-50 border-slate-100'} p-2.5 rounded-lg border mb-1.5">
-                    <span class="text-sm">${c.name}</span>
-                    <button onclick="deleteCat('${c.name}')" class="text-red-400 text-xs font-bold px-2 hover:text-red-500">刪除</button>
+                    <span class="text-sm">${escapeHTML(c.name)}</span>
+                    <button onclick="deleteCat('${escapeHTML(c.name)}')" class="text-red-400 text-xs font-bold px-2 hover:text-red-500">刪除</button>
                 </div>`).join('');
         }
 
         function moveBook(globalIndex, direction) {
             const targetIndex = globalIndex + direction;
             if (globalIndex < 0 || globalIndex >= books.length || targetIndex < 0 || targetIndex >= books.length) return;
-            
+
             const temp = books[globalIndex];
             books[globalIndex] = books[targetIndex];
             books[targetIndex] = temp;
-            
+
             hasOrderChanged = true;
             document.getElementById('saveOrderBtn').classList.remove('hidden');
             renderUI();
@@ -391,7 +426,7 @@
             };
 
             if (!book.title) return alert("書名是必填的喔！");
-            
+
             const btn = document.getElementById('saveBtn');
             const oldText = btn.innerText;
             btn.innerText = "🚀 正在同步雲端更新中...";
@@ -424,7 +459,7 @@
         async function fetchAllData(showError = true) {
             const btn = document.getElementById('syncBtn');
             if(btn) btn.innerText = "⚡ 同步中...";
-            
+
             const finalURL = isSecretMode 
                 ? (scriptURL + "?pass=" + PRIVATE_PASS + "&sheet=工作表2") 
                 : (scriptURL + "?sheet=工作表1");
@@ -455,7 +490,7 @@
             }
             if(isSecretMode) localStorage.setItem('sec_cats_v108', JSON.stringify(secretCats));
             else localStorage.setItem('pub_cats_v108', JSON.stringify(publicCats));
-            
+
             document.getElementById('newCatName').value = "";
             activeTab = name;
             renderUI();
