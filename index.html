@@ -15,8 +15,38 @@
         #tanBtn:hover { opacity: 0.8; }
         input, textarea, select { outline: none; border-radius: 8px; padding: 10px; border: 1px solid #e2e8f0; width: 100%; font-size: 14px; background: white; color: #1a202c; }
         .dark input, .dark textarea, .dark select { background: #2d3748; color: #e2e8f0; border-color: #4a5568; }
+
+        /* 資料夾版面 */
+        .folder-layout-list { display: flex; flex-direction: column; gap: 10px; }
+        .folder-layout-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+        .folder-layout-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+        @media (min-width: 700px) {
+            .folder-layout-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        .folder-layout-two details, .folder-layout-grid details { min-width: 0; }
+        .folder-layout-two summary, .folder-layout-grid summary { min-height: 76px; align-items: center; }
+
+        /* 版面切換按鈕 */
+        .view-toggle {
+            width: 42px;
+            height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            color: #64748b;
+            transition: all .15s;
+        }
+        .view-toggle.active {
+            background: #fff;
+            color: #0f172a;
+            box-shadow: 0 1px 4px rgba(0,0,0,.14);
+        }
+        .dark .view-toggle { color: #a1a1aa; }
+        .dark .view-toggle.active { background: #3f3f46; color: #fff; }
     </style>
 </head>
+
 <body id="bodyBg" class="bg-slate-50 min-h-screen font-sans transition-colors duration-300">
 
     <nav id="navBg" class="bg-white shadow-sm sticky top-0 z-50">
@@ -37,20 +67,68 @@
     <div id="tabContainer" class="max-w-4xl mx-auto p-4 flex gap-6 border-b overflow-x-auto bg-white sticky top-[65px] z-40"></div>
 
     <main class="max-w-4xl mx-auto p-4 pb-28">
-        <div id="bookContainer" class="space-y-2"></div>
+
+        <!-- 資料夾版面切換 -->
+        <div class="flex justify-end mb-3">
+            <div class="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 p-1 dark:border-zinc-700 dark:bg-zinc-800" aria-label="資料夾顯示方式">
+
+                <button id="viewListBtn"
+                    class="view-toggle"
+                    onclick="setFolderLayout('list')"
+                    title="單欄顯示"
+                    aria-label="單欄顯示">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                        <rect x="3" y="4" width="18" height="16" rx="2"/>
+                        <path d="M7 8h10M7 12h10M7 16h10"/>
+                    </svg>
+                </button>
+
+                <button id="viewTwoBtn"
+                    class="view-toggle"
+                    onclick="setFolderLayout('two')"
+                    title="雙欄顯示"
+                    aria-label="雙欄顯示">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                        <rect x="3" y="4" width="8" height="16" rx="1.5"/>
+                        <rect x="13" y="4" width="8" height="16" rx="1.5"/>
+                    </svg>
+                </button>
+
+                <button id="viewGridBtn"
+                    class="view-toggle"
+                    onclick="setFolderLayout('grid')"
+                    title="格狀顯示"
+                    aria-label="格狀顯示">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <rect x="3" y="3" width="7" height="7" rx="1.3"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1.3"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1.3"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1.3"/>
+                    </svg>
+                </button>
+
+            </div>
+        </div>
+
+        <div id="bookContainer" class="folder-layout-list"></div>
     </main>
 
-    <button onclick="openAddModal()" id="addBtn" class="fixed bottom-8 right-8 bg-emerald-700 text-white w-16 h-16 rounded-full shadow-2xl text-4xl z-40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95">+</button>
+    <button onclick="openAddModal()" id="addBtn"
+        class="fixed bottom-8 right-8 bg-emerald-700 text-white w-16 h-16 rounded-full shadow-2xl text-4xl z-40 flex items-center justify-center transition-transform hover:scale-105 active:scale-95">+</button>
 
     <!-- 分類管理 -->
     <div id="categoryModal" class="modal">
         <div class="bg-white rounded-2xl w-full max-w-md p-7 shadow-xl book-modal-content">
-            <h3 class="text-xl font-bold mb-5 text-center text-slate-900 modal-text">分類設定 (<span id="catModalMode">正常</span>)</h3>
+            <h3 class="text-xl font-bold mb-5 text-center text-slate-900 modal-text">
+                分類設定 (<span id="catModalMode">正常</span>)
+            </h3>
             <div id="categoryList" class="mb-5 space-y-2.5 max-h-60 overflow-y-auto"></div>
+
             <div class="bg-slate-100 p-4 rounded-xl space-y-3 book-modal-form">
                 <input id="newCatName" type="text" placeholder="新分類名稱">
                 <button onclick="addCategory()" class="w-full bg-emerald-700 text-white py-2.5 rounded-lg text-sm font-bold idBtn">新增分類</button>
             </div>
+
             <button onclick="closeModal('categoryModal')" class="w-full mt-5 text-slate-500 py-2 text-sm">關閉彈窗</button>
             <button onclick="resetAllData()" class="w-full mt-3 text-red-400 text-[11px] font-bold">⚠️ 強制清除手機快取(Reset)</button>
         </div>
@@ -63,13 +141,17 @@
                 <h3 id="detTitle" class="text-xl font-bold text-slate-900 modal-text">書名</h3>
                 <span id="detRating" class="text-sm text-amber-500 font-bold">🌕 5.0</span>
             </div>
+
             <p id="detAuthor" class="text-xs text-slate-400 italic mb-4">作者</p>
+
             <div class="bg-slate-50 p-4 rounded-xl mb-4 book-modal-form max-h-60 overflow-y-auto">
                 <p id="detDesc" class="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">暫無心得簡介內容。</p>
             </div>
+
             <div id="detLinkContainer" class="mb-6 hidden">
                 <a id="detLink" href="#" target="_blank" class="text-sm text-sky-500 font-medium block truncate hover:underline">🔗 開啟設定網址</a>
             </div>
+
             <div class="flex justify-between items-center pt-4 border-t border-slate-100 modal-footer">
                 <div class="flex gap-2">
                     <button id="detEditBtn" class="text-xs bg-slate-100 text-slate-700 px-3 py-2 rounded-md font-bold">🛠️ 編輯</button>
@@ -85,16 +167,40 @@
         <div class="bg-white rounded-2xl w-full max-w-md p-7 overflow-y-auto max-h-[95vh] shadow-xl book-modal-content">
             <h3 id="bookModalTitle" class="text-xl font-bold mb-6 text-slate-900 modal-text">新增書籍紀錄</h3>
             <input type="hidden" id="bookId">
+
             <div class="space-y-4 book-modal-form">
-                <div><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">書名 (必填)</label><input id="bTitle" type="text" placeholder="輸入書名..."></div>
-                <div><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">作者</label><input id="author" type="text" placeholder="作者名稱...（相同作者會自動歸在一起）"></div>
-                <div><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">簡介 (心得)</label><textarea id="desc" placeholder="寫點閱讀心得或簡介..." class="h-28"></textarea></div>
-                <div><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">網址</label><input id="link" type="text" placeholder="https://..."></div>
+                <div>
+                    <label class="text-[11px] text-slate-400 font-bold uppercase ml-1">書名 (必填)</label>
+                    <input id="bTitle" type="text" placeholder="輸入書名...">
+                </div>
+
+                <div>
+                    <label class="text-[11px] text-slate-400 font-bold uppercase ml-1">作者</label>
+                    <input id="author" type="text" placeholder="作者名稱...（相同作者會自動歸在一起）">
+                </div>
+
+                <div>
+                    <label class="text-[11px] text-slate-400 font-bold uppercase ml-1">簡介 (心得)</label>
+                    <textarea id="desc" placeholder="寫點閱讀心得或簡介..." class="h-28"></textarea>
+                </div>
+
+                <div>
+                    <label class="text-[11px] text-slate-400 font-bold uppercase ml-1">網址</label>
+                    <input id="link" type="text" placeholder="https://...">
+                </div>
+
                 <div class="flex gap-4">
-                    <div class="w-1/2"><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">評分</label><input id="rating" type="number" step="0.5" min="0" max="10" value="5"></div>
-                    <div class="w-1/2"><label class="text-[11px] text-slate-400 font-bold uppercase ml-1">分類</label><select id="bCat"></select></div>
+                    <div class="w-1/2">
+                        <label class="text-[11px] text-slate-400 font-bold uppercase ml-1">評分</label>
+                        <input id="rating" type="number" step="0.5" min="0" max="10" value="5">
+                    </div>
+                    <div class="w-1/2">
+                        <label class="text-[11px] text-slate-400 font-bold uppercase ml-1">分類</label>
+                        <select id="bCat"></select>
+                    </div>
                 </div>
             </div>
+
             <div class="flex justify-end gap-3 pt-6 mt-2 border-t border-slate-100 modal-footer">
                 <button onclick="closeModal('bookModal')" class="px-5 py-2.5 text-slate-500 text-sm">取消</button>
                 <button id="saveBtn" onclick="saveBook()" class="bg-emerald-700 text-white px-8 py-2.5 rounded-lg font-bold text-sm idBtn">儲存並同步雲端</button>
@@ -104,7 +210,7 @@
 
     <script>
         // ⚠️ 請確保這裡填入的是你最新的 Google Apps Script 部署網址
-        const scriptURL = "https://script.google.com/macros/s/AKfycbzlN3KI7nsl5ZAqxWJFahZu-LkQTC78g85_fa8hU3_I6QhOx2uL-tes_Bu2eEb6Kdko/exec"; 
+        const scriptURL = "https://script.google.com/macros/s/AKfycbzlN3KI7nsl5ZAqxWJFahZu-LkQTC78g85_fa8hU3_I6QhOx2uL-tes_Bu2eEb6Kdko/exec";
         const PRIVATE_PASS = "0416";
 
         let publicCats = JSON.parse(localStorage.getItem('pub_cats_v108')) || [{name:'未讀'},{name:'已讀'}];
@@ -128,29 +234,33 @@
 
             if (!isSecretMode) {
                 const password = prompt("此為隱密空間，請輸入安全密碼：");
+
                 if (password === PRIVATE_PASS) {
                     isSecretMode = true;
-                    activeTab = ""; 
+                    activeTab = "";
 
-                    // ✨ 關鍵修正：換模式時立刻把手機畫面上的舊書清空，才不會留著上一個模式的書
-                    books = []; 
-                    document.getElementById('bookContainer').innerHTML = `<div class="text-center py-12 text-zinc-500 text-xs">🔒 正在解密並載入私人書庫...</div>`;
+                    // 換模式時先清空舊書籍
+                    books = [];
+                    document.getElementById('bookContainer').innerHTML =
+                        `<div class="text-center py-12 text-zinc-500 text-xs">🔒 正在解密並載入私人書庫...</div>`;
 
                     enterSecretStyle();
-                    fetchAllData(false); // 立即去抓工作表2
+                    fetchAllData(false);
                 } else if (password !== null) {
                     alert("❌ 密碼錯誤！存取被拒。");
                 }
+
             } else {
                 isSecretMode = false;
                 activeTab = publicCats[0] ? publicCats[0].name : '';
 
-                // ✨ 關鍵修正：換模式時立刻把手機畫面上的舊書清空
-                books = []; 
-                document.getElementById('bookContainer').innerHTML = `<div class="text-center py-12 text-slate-400 text-xs">📖 正在載入一般書庫...</div>`;
+                // 換模式時先清空舊書籍
+                books = [];
+                document.getElementById('bookContainer').innerHTML =
+                    `<div class="text-center py-12 text-slate-400 text-xs">📖 正在載入一般書庫...</div>`;
 
                 exitSecretStyle();
-                fetchAllData(false); // 立即去抓工作表1
+                fetchAllData(false);
             }
         }
 
@@ -158,22 +268,29 @@
             const bookCats = [...new Set(books.map(b => b.category).filter(Boolean))];
 
             if (isSecretMode) {
-                if(!secretCats.some(c => c.name === '未讀')) secretCats.push({name:'未讀'});
-                if(!secretCats.some(c => c.name === '已讀')) secretCats.push({name:'已讀'});
+                if (!secretCats.some(c => c.name === '未讀')) secretCats.push({name:'未讀'});
+                if (!secretCats.some(c => c.name === '已讀')) secretCats.push({name:'已讀'});
+
                 bookCats.forEach(name => {
-                    if(!secretCats.some(c => c.name === name)) secretCats.push({name});
+                    if (!secretCats.some(c => c.name === name)) secretCats.push({name});
                 });
+
                 localStorage.setItem('sec_cats_v108', JSON.stringify(secretCats));
+
                 if (!activeTab || !secretCats.some(c => c.name === activeTab)) {
                     activeTab = secretCats[0] ? secretCats[0].name : '';
                 }
+
             } else {
-                if(!publicCats.some(c => c.name === '未讀')) publicCats.push({name:'未讀'});
-                if(!publicCats.some(c => c.name === '已讀')) publicCats.push({name:'已讀'});
+                if (!publicCats.some(c => c.name === '未讀')) publicCats.push({name:'未讀'});
+                if (!publicCats.some(c => c.name === '已讀')) publicCats.push({name:'已讀'});
+
                 bookCats.forEach(name => {
-                    if(!publicCats.some(c => c.name === name)) publicCats.push({name});
+                    if (!publicCats.some(c => c.name === name)) publicCats.push({name});
                 });
+
                 localStorage.setItem('pub_cats_v108', JSON.stringify(publicCats));
+
                 if (!activeTab || !publicCats.some(c => c.name === activeTab)) {
                     activeTab = publicCats[0] ? publicCats[0].name : '';
                 }
@@ -185,7 +302,7 @@
             document.getElementById('bodyBg').className = "bg-zinc-950 min-h-screen font-sans transition-colors duration-300 text-zinc-100";
             document.getElementById('navBg').className = "bg-zinc-900 shadow-xl sticky top-0 z-50 border-b border-zinc-800";
             document.getElementById('tabContainer').className = "max-w-4xl mx-auto p-4 flex gap-6 border-b border-zinc-800 overflow-x-auto bg-zinc-900 sticky top-[65px] z-40 text-zinc-400";
-            document.getElementById('appTitle').innerText = "私人書庫"; 
+            document.getElementById('appTitle').innerText = "私人書庫";
             document.getElementById('appTitle').className = "text-xl font-bold text-rose-400";
             document.getElementById('syncBtn').className = "ml-2 text-xs text-rose-400 font-bold border border-rose-900 px-3 py-1 rounded-lg bg-zinc-900";
             document.getElementById('modeBadge').classList.remove('hidden');
@@ -218,8 +335,21 @@
 
         function escapeHTML(value) {
             return String(value ?? '').replace(/[&<>"']/g, ch => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
             })[ch]);
+        }
+
+        /* 資料夾版面設定 */
+        let folderLayout = localStorage.getItem('folder_layout_v110') || 'two';
+
+        function setFolderLayout(layout) {
+            folderLayout = layout;
+            localStorage.setItem('folder_layout_v110', layout);
+            renderUI();
         }
 
         function renderUI() {
@@ -237,7 +367,22 @@
             `).join('');
 
             const filteredBooks = books.filter(b => b.category === activeTab);
-            const itemBg = isSecretMode ? 'bg-zinc-900 border-zinc-800 text-zinc-100 hover:bg-zinc-800' : 'bg-white border-slate-100 text-slate-800 hover:bg-slate-50';
+            const bookContainer = document.getElementById('bookContainer');
+
+            bookContainer.className = `folder-layout-${folderLayout}`;
+
+            // 更新目前選取的版面按鈕
+            ['list', 'two', 'grid'].forEach(layout => {
+                const button = document.getElementById(
+                    `view${layout === 'list' ? 'List' : layout === 'two' ? 'Two' : 'Grid'}Btn`
+                );
+                if (button) button.classList.toggle('active', folderLayout === layout);
+            });
+
+            const itemBg = isSecretMode
+                ? 'bg-zinc-900 border-zinc-800 text-zinc-100 hover:bg-zinc-800'
+                : 'bg-white border-slate-100 text-slate-800 hover:bg-slate-50';
+
             const textMuted = isSecretMode ? 'text-zinc-500' : 'text-slate-400';
             const moveBtnColor = isSecretMode ? 'text-zinc-500 hover:text-zinc-300' : 'text-slate-400 hover:text-slate-700';
             const folderBg = isSecretMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200';
@@ -246,14 +391,20 @@
             // 依作者自動分組；作者欄位相同的書籍會進入同一個可展開資料夾。
             // 沒有填作者的書籍會集中在「未填寫作者」資料夾。
             const authorGroups = new Map();
+
             filteredBooks.forEach(book => {
                 const authorName = (book.author || '').trim() || '未填寫作者';
-                if (!authorGroups.has(authorName)) authorGroups.set(authorName, []);
+
+                if (!authorGroups.has(authorName)) {
+                    authorGroups.set(authorName, []);
+                }
+
                 authorGroups.get(authorName).push(book);
             });
 
-            document.getElementById('bookContainer').innerHTML = [...authorGroups.entries()].map(([authorName, groupBooks]) => {
+            bookContainer.innerHTML = [...authorGroups.entries()].map(([authorName, groupBooks]) => {
                 const safeAuthor = escapeHTML(authorName);
+
                 const rows = groupBooks.map(book => {
                     const globalIndex = books.findIndex(originalBook => originalBook.id === book.id);
                     const categoryIndex = filteredBooks.findIndex(item => item.id === book.id);
@@ -261,55 +412,73 @@
                     const safeBookId = escapeHTML(book.id);
                     const safeBookAuthor = escapeHTML(book.author || '');
                     const rating = Number.parseFloat(book.rating);
+
                     return `
                     <div class="${itemBg} px-4 py-3 rounded-xl shadow-sm border flex items-center justify-between gap-3 transition-colors">
                         <div class="flex items-center gap-1">
                             <button onclick="moveBook(${globalIndex}, -1)" class="${moveBtnColor} font-mono p-1 text-xs active:scale-95 ${categoryIndex === 0 ? 'opacity-20 pointer-events-none' : ''}">🔼</button>
                             <button onclick="moveBook(${globalIndex}, 1)" class="${moveBtnColor} font-mono p-1 text-xs active:scale-95 ${categoryIndex === filteredBooks.length - 1 ? 'opacity-20 pointer-events-none' : ''}">🔽</button>
                         </div>
+
                         <div onclick="openDetailModal('${safeBookId}')" class="flex-1 min-w-0 cursor-pointer py-1 flex items-center justify-between gap-4">
                             <div class="truncate">
                                 <span class="font-bold text-sm md:text-base">${safeTitle}</span>
                                 ${safeBookAuthor ? `<span class="text-xs ${textMuted} ml-2 font-normal">(${safeBookAuthor})</span>` : ''}
                             </div>
-                            <span class="text-xs text-amber-500 font-bold whitespace-nowrap">🌕 ${Number.isFinite(rating) ? rating.toFixed(1) : '5.0'}</span>
+                            <span class="text-xs text-amber-500 font-bold whitespace-nowrap">
+                                🌕 ${Number.isFinite(rating) ? rating.toFixed(1) : '5.0'}
+                            </span>
                         </div>
                     </div>`;
                 }).join('');
 
                 return `
-                <details class="${folderBg} border rounded-xl shadow-sm overflow-hidden mb-3">
-                    <summary class="cursor-pointer list-none px-4 py-3 flex items-center justify-between gap-3 ${folderText} select-none">
+                <details class="${folderBg} border rounded-xl shadow-sm overflow-hidden">
+                    <summary class="cursor-pointer list-none px-3 py-3 flex items-center justify-between gap-2 ${folderText} select-none">
                         <span class="flex items-center gap-2 min-w-0">
                             <span class="text-lg">📁</span>
                             <span class="font-bold text-sm truncate">${safeAuthor}</span>
                         </span>
                         <span class="text-xs ${textMuted} whitespace-nowrap">${groupBooks.length} 本　⌄</span>
                     </summary>
+
                     <div class="px-2 pb-2 space-y-2">${rows}</div>
                 </details>`;
             }).join('');
 
-            if(filteredBooks.length === 0) {
-                document.getElementById('bookContainer').innerHTML = `<div class="text-center py-12 ${textMuted} text-xs">此分類目前是空的。點右下角 + 新增書本</div>`;
+            if (filteredBooks.length === 0) {
+                bookContainer.innerHTML = `
+                    <div class="text-center py-12 ${textMuted} text-xs">
+                        此分類目前是空的。點右下角 + 新增書本
+                    </div>`;
             }
 
             document.querySelectorAll('.idBtn').forEach(btn => {
-                if(isSecretMode) { btn.classList.replace('bg-emerald-700','bg-rose-600'); }
-                else { btn.classList.replace('bg-rose-600','bg-emerald-700'); }
+                if (isSecretMode) {
+                    btn.classList.replace('bg-emerald-700', 'bg-rose-600');
+                } else {
+                    btn.classList.replace('bg-rose-600', 'bg-emerald-700');
+                }
             });
 
-            document.getElementById('bCat').innerHTML = currentCats.map(c => `<option value="${escapeHTML(c.name)}">${escapeHTML(c.name)}</option>`).join('');
+            document.getElementById('bCat').innerHTML = currentCats.map(c =>
+                `<option value="${escapeHTML(c.name)}">${escapeHTML(c.name)}</option>`
+            ).join('');
+
             document.getElementById('categoryList').innerHTML = currentCats.map((c, i) => `
                 <div class="flex justify-between items-center ${isSecretMode ? 'bg-zinc-800 border-zinc-700' : 'bg-slate-50 border-slate-100'} p-2.5 rounded-lg border mb-1.5">
                     <span class="text-sm">${escapeHTML(c.name)}</span>
                     <button onclick="deleteCat('${escapeHTML(c.name)}')" class="text-red-400 text-xs font-bold px-2 hover:text-red-500">刪除</button>
-                </div>`).join('');
+                </div>
+            `).join('');
         }
 
         function moveBook(globalIndex, direction) {
             const targetIndex = globalIndex + direction;
-            if (globalIndex < 0 || globalIndex >= books.length || targetIndex < 0 || targetIndex >= books.length) return;
+
+            if (globalIndex < 0 || globalIndex >= books.length || targetIndex < 0 || targetIndex >= books.length) {
+                return;
+            }
 
             const temp = books[globalIndex];
             books[globalIndex] = books[targetIndex];
@@ -323,25 +492,29 @@
         async function saveSortOrder() {
             const btn = document.getElementById('saveOrderBtn');
             const oldText = btn.innerText;
+
             btn.innerText = "⏳ 儲存中...";
             btn.disabled = true;
 
             try {
-                await fetch(scriptURL, { 
-                    method: "POST", 
-                    mode: "no-cors", 
-                    body: JSON.stringify({ 
-                        action: "reorder", 
-                        books: books, 
-                        sheetName: isSecretMode ? "工作表2" : "工作表1" 
-                    }) 
+                await fetch(scriptURL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    body: JSON.stringify({
+                        action: "reorder",
+                        books: books,
+                        sheetName: isSecretMode ? "工作表2" : "工作表1"
+                    })
                 });
+
                 hasOrderChanged = false;
                 btn.classList.add('hidden');
                 alert("✨ 排序已成功同步至雲端！");
                 await fetchAllData(false);
+
             } catch (e) {
                 alert("排序儲存失敗，請重試！");
+
             } finally {
                 btn.innerText = oldText;
                 btn.disabled = false;
@@ -350,7 +523,7 @@
 
         function openDetailModal(id) {
             const b = books.find(book => book.id === id);
-            if(!b) return;
+            if (!b) return;
 
             document.getElementById('detTitle').innerText = b.title;
             document.getElementById('detAuthor').innerText = b.author ? `作者：${b.author}` : "未知作者";
@@ -358,32 +531,47 @@
             document.getElementById('detDesc').innerText = b.desc || "無心得內容。";
 
             const linkContainer = document.getElementById('detLinkContainer');
-            if(b.link) {
+
+            if (b.link) {
                 linkContainer.classList.remove('hidden');
                 document.getElementById('detLink').href = b.link;
             } else {
                 linkContainer.classList.add('hidden');
             }
 
-            document.getElementById('detEditBtn').onclick = () => { closeModal('detailModal'); openEditModal(id); };
-            document.getElementById('detDelBtn').onclick = () => { closeModal('detailModal'); deleteBookCloud(id); };
+            document.getElementById('detEditBtn').onclick = () => {
+                closeModal('detailModal');
+                openEditModal(id);
+            };
+
+            document.getElementById('detDelBtn').onclick = () => {
+                closeModal('detailModal');
+                deleteBookCloud(id);
+            };
 
             showModal('detailModal');
         }
 
-        function switchTab(name) { 
-            if (hasOrderChanged && !confirm("您有變更排序尚未儲存，切換分類將遺失排序，確定切換嗎？")) return;
+        function switchTab(name) {
+            if (hasOrderChanged && !confirm("您有變更排序尚未儲存，切換分類將遺失排序，確定切換嗎？")) {
+                return;
+            }
+
             hasOrderChanged = false;
             document.getElementById('saveOrderBtn').classList.add('hidden');
-            activeTab = name; 
-            renderUI(); 
+            activeTab = name;
+            renderUI();
         }
 
         function openAddModal() {
             document.getElementById('bookId').value = "";
             document.getElementById('bookModalTitle').innerText = isSecretMode ? "新增安全書籍" : "新增書籍紀錄";
             document.getElementById('saveBtn').innerText = "儲存並新增至雲端";
-            ['bTitle','author','desc','link'].forEach(id => document.getElementById(id).value = "");
+
+            ['bTitle', 'author', 'desc', 'link'].forEach(id => {
+                document.getElementById(id).value = "";
+            });
+
             document.getElementById('rating').value = "5";
             renderUI();
             showModal('bookModal');
@@ -391,7 +579,8 @@
 
         function openEditModal(id) {
             const bookData = books.find(b => b.id === id);
-            if(!bookData) return;
+            if (!bookData) return;
+
             document.getElementById('bookId').value = bookData.id;
             document.getElementById('bookModalTitle').innerText = "修改《" + bookData.title + "》";
             document.getElementById('saveBtn').innerText = "確認修改並更新雲端";
@@ -400,13 +589,17 @@
             document.getElementById('desc').value = bookData.desc || "";
             document.getElementById('link').value = bookData.link || "";
             document.getElementById('rating').value = bookData.rating || "5";
+
             renderUI();
-            document.getElementById('bCat').value = bookData.category; 
+            document.getElementById('bCat').value = bookData.category;
             showModal('bookModal');
         }
 
         async function saveBook() {
-            if (hasOrderChanged && !confirm("您有變更排序尚未儲存，儲存書籍將會重置未儲存的排序，確定繼續嗎？")) return;
+            if (hasOrderChanged && !confirm("您有變更排序尚未儲存，儲存書籍將會重置未儲存的排序，確定繼續嗎？")) {
+                return;
+            }
+
             hasOrderChanged = false;
             document.getElementById('saveOrderBtn').classList.add('hidden');
 
@@ -422,74 +615,104 @@
                 link: document.getElementById('link').value.trim(),
                 rating: document.getElementById('rating').value || "5",
                 category: document.getElementById('bCat').value,
-                sheetName: isSecretMode ? "工作表2" : "工作表1" 
+                sheetName: isSecretMode ? "工作表2" : "工作表1"
             };
 
-            if (!book.title) return alert("書名是必填的喔！");
+            if (!book.title) {
+                return alert("書名是必填的喔！");
+            }
 
             const btn = document.getElementById('saveBtn');
             const oldText = btn.innerText;
+
             btn.innerText = "🚀 正在同步雲端更新中...";
             btn.disabled = true;
 
             try {
-                await fetch(scriptURL, { method: "POST", mode: "no-cors", body: JSON.stringify(book) });
+                await fetch(scriptURL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    body: JSON.stringify(book)
+                });
+
                 closeModal('bookModal');
                 await fetchAllData(false);
-            } catch (e) { 
-                alert("雲端同步失敗！"); 
-            } finally { 
-                btn.innerText = oldText; 
-                btn.disabled = false; 
+
+            } catch (e) {
+                alert("雲端同步失敗！");
+
+            } finally {
+                btn.innerText = oldText;
+                btn.disabled = false;
             }
         }
 
         async function deleteBookCloud(id) {
-            if(!confirm("⚠️ 確定連同試算表永久刪除？")) return;
+            if (!confirm("⚠️ 確定連同試算表永久刪除？")) return;
+
             try {
-                await fetch(scriptURL, { method: "POST", mode: "no-cors", body: JSON.stringify({
-                    action: "delete", 
-                    id: id, 
-                    sheetName: isSecretMode ? "工作表2" : "工作表1" 
-                }) });
+                await fetch(scriptURL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    body: JSON.stringify({
+                        action: "delete",
+                        id: id,
+                        sheetName: isSecretMode ? "工作表2" : "工作表1"
+                    })
+                });
+
                 await fetchAllData(false);
-            } catch (e) { alert("雲端刪除失敗！"); }
+
+            } catch (e) {
+                alert("雲端刪除失敗！");
+            }
         }
 
         async function fetchAllData(showError = true) {
             const btn = document.getElementById('syncBtn');
-            if(btn) btn.innerText = "⚡ 同步中...";
+            if (btn) btn.innerText = "⚡ 同步中...";
 
-            const finalURL = isSecretMode 
-                ? (scriptURL + "?pass=" + PRIVATE_PASS + "&sheet=工作表2") 
+            const finalURL = isSecretMode
+                ? (scriptURL + "?pass=" + PRIVATE_PASS + "&sheet=工作表2")
                 : (scriptURL + "?sheet=工作表1");
 
             try {
                 const response = await fetch(finalURL);
                 const cloudData = await response.json();
+
                 if (cloudData && Array.isArray(cloudData)) {
-                    books = cloudData; 
-                    autoMergeCategories(); 
+                    books = cloudData;
+                    autoMergeCategories();
                     renderUI();
                 }
-            } catch (e) { 
-                if(showError) alert("同步失敗！"); 
+
+            } catch (e) {
+                if (showError) alert("同步失敗！");
+
                 // 發生錯誤時清空畫面文字
-                document.getElementById('bookContainer').innerHTML = `<div class="text-center py-12 text-red-400 text-xs">同步失敗，請點選上方同步鈕重試。</div>`;
+                document.getElementById('bookContainer').innerHTML =
+                    `<div class="text-center py-12 text-red-400 text-xs">同步失敗，請點選上方同步鈕重試。</div>`;
+
             } finally {
-                if(btn) btn.innerText = "🔄 同步";
+                if (btn) btn.innerText = "🔄 同步";
             }
         }
 
         function addCategory() {
             const name = document.getElementById('newCatName').value.trim();
-            if(!name) return;
+            if (!name) return;
+
             const currentCats = isSecretMode ? secretCats : publicCats;
-            if(!currentCats.some(c=>c.name===name)) {
+
+            if (!currentCats.some(c => c.name === name)) {
                 currentCats.push({name});
             }
-            if(isSecretMode) localStorage.setItem('sec_cats_v108', JSON.stringify(secretCats));
-            else localStorage.setItem('pub_cats_v108', JSON.stringify(publicCats));
+
+            if (isSecretMode) {
+                localStorage.setItem('sec_cats_v108', JSON.stringify(secretCats));
+            } else {
+                localStorage.setItem('pub_cats_v108', JSON.stringify(publicCats));
+            }
 
             document.getElementById('newCatName').value = "";
             activeTab = name;
@@ -497,28 +720,36 @@
         }
 
         function deleteCat(name) {
-            if(!confirm("確定刪除此分類？")) return;
-            if(isSecretMode) {
+            if (!confirm("確定刪除此分類？")) return;
+
+            if (isSecretMode) {
                 secretCats = secretCats.filter(c => c.name !== name);
                 localStorage.setItem('sec_cats_v108', JSON.stringify(secretCats));
                 activeTab = secretCats[0] ? secretCats[0].name : '';
+
             } else {
                 publicCats = publicCats.filter(c => c.name !== name);
                 localStorage.setItem('pub_cats_v108', JSON.stringify(publicCats));
                 activeTab = publicCats[0] ? publicCats[0].name : '';
             }
+
             renderUI();
         }
 
         function resetAllData() {
-            if(confirm("這將清除手機所有暫存並重新載入雲端資料，確定嗎？")) {
+            if (confirm("這將清除手機所有暫存並重新載入雲端資料，確定嗎？")) {
                 localStorage.clear();
                 location.reload();
             }
         }
 
-        function showModal(id) { document.getElementById(id).classList.add('show'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+        function showModal(id) {
+            document.getElementById(id).classList.add('show');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
     </script>
 </body>
 </html>
